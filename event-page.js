@@ -1,14 +1,13 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.0.0
- * 
- * Features:
- * - Favorite button functionality
- * - Past event badge & styling
- * - Event card link fixes
- * - Lightbox for images (Featured pages)
- * - Video embed handling (Featured pages)
+ * Version: 1.0.1
  */
+
+// Global guard - prevent entire script from running twice
+if (window.DriveThisLoaded) {
+  console.log('[Drive This] Already loaded, skipping');
+} else {
+  window.DriveThisLoaded = true;
 
 (function() {
   'use strict';
@@ -26,7 +25,6 @@
       } else {
         fn();
       }
-      if (window.Webflow) window.Webflow.push(fn);
     },
 
     log(msg) {
@@ -61,7 +59,6 @@
       
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(favorites));
       
-      // Dispatch event for other components
       window.dispatchEvent(new CustomEvent('dt:favorite-toggled', {
         detail: { slug, isFavorited: !isFav }
       }));
@@ -88,22 +85,21 @@
     init() {
       const btn = document.getElementById('dt-event-favorite');
       if (!btn || !DT.slug) return;
-      
-      // Guard against double initialization
-      if (btn.dataset.dtInitialized) return;
-      btn.dataset.dtInitialized = 'true';
 
       this.updateButton(btn, this.isFavorited(DT.slug));
 
       btn.addEventListener('click', (e) => {
         e.preventDefault();
+        e.stopPropagation();
+        
         const isNowFav = this.toggle(DT.slug);
         this.updateButton(btn, isNowFav);
         
-        // Trigger animation
         btn.classList.remove('just-toggled');
         void btn.offsetWidth;
         btn.classList.add('just-toggled');
+        
+        DT.log('Favorite toggled: ' + isNowFav);
       });
 
       DT.log('Favorites initialized');
@@ -133,7 +129,6 @@
       const container = document.querySelector('.meta-date');
       if (!container) return;
 
-      // Add badge if not exists
       if (!document.querySelector('.dt-past-event-badge-detail')) {
         const badge = document.createElement('span');
         badge.className = 'dt-past-event-badge-detail';
@@ -141,7 +136,6 @@
         container.insertBefore(badge, container.firstChild);
       }
 
-      // Strike through date elements
       Array.from(container.children).forEach(child => {
         if (!child.classList.contains('dt-past-event-badge-detail')) {
           child.style.textDecoration = 'line-through';
@@ -283,7 +277,6 @@
   
   const Deals = {
     init() {
-      // Copy code to clipboard functionality
       const codeElements = document.querySelectorAll('[data-copy-code]');
       
       codeElements.forEach(el => {
@@ -325,3 +318,5 @@
   window.DriveThis = { DT, Favorites, Lightbox };
 
 })();
+
+} // end of global guard
