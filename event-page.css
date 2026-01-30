@@ -1,0 +1,311 @@
+/**
+ * DRIVE THIS - Event Page Styles
+ * Version: 1.0.0
+ */
+
+/* ===========================================
+   FAVORITE BUTTON
+   =========================================== */
+
+.dt-event-favorite {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 0;
+  background: #fff;
+  color: #000;
+  font-family: Sonnygothic, Arial, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dt-event-favorite:hover {
+  background: #f9fafb;
+}
+
+.dt-event-favorite.is-favorited {
+  background: #fef2f2;
+  color: #FF9900;
+}
+
+.dt-event-favorite.is-favorited svg {
+  fill: currentColor;
+}
+
+.dt-event-favorite svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 0.2s ease;
+}
+
+.dt-event-favorite.icon-only {
+  padding: 12px;
+  border-radius: 50%;
+}
+
+.dt-event-favorite.icon-only .dt-favorite-text {
+  display: none;
+}
+
+@keyframes dtHeartPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+
+.dt-event-favorite.just-toggled svg {
+  animation: dtHeartPop 0.3s ease;
+}
+
+/* ===========================================
+   PAST EVENT BADGE
+   =========================================== */
+
+.meta-date {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+}
+
+.dt-past-event-badge-detail {
+  display: inline-flex !important;
+  background: #fff !important;
+  color: #000 !important;
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  margin-right: 4px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+}
+
+/* ===========================================
+   LIGHTBOX
+   =========================================== */
+
+.dt-lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  padding: 20px;
+}
+
+.dt-lightbox.is-active {
+  display: flex;
+}
+
+.dt-lightbox img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* ===========================================
+   FEATURED EVENT - DEALS SECTION
+   =========================================== */
+
+.dt-deals-section {
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.15) 0%, transparent 100%);
+  border: 1px solid #c9a227;
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.dt-deal-card {
+  background: #141414;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 1px solid #2a2a2a;
+}
+
+.dt-deal-card:last-child {
+  margin-bottom: 0;
+}
+
+.dt-deal-tag {
+  display: inline-block;
+  background: #22c55e;
+  color: #000;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.dt-deal-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1a1a1a;
+  border: 1px dashed #2a2a2a;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 14px;
+  color: #c9a227;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dt-deal-code:hover {
+  background: #2a2a2a;
+}
+
+.dt-deal-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #c9a227;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: gap 0.2s ease;
+}
+
+.dt-deal-link:hover {
+  gap: 10px;
+}
+
+/* ===========================================
+   FEATURED EVENT - REGION SECTION
+   =========================================== */
+
+.dt-region-section {
+  background: #141414;
+  border-radius: 16px;
+  padding: 32px;
+  border: 1px solid #2a2a2a;
+}
+
+.dt-region-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.dt-region-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.dt-region-number {
+  width: 32px;
+  height: 32px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  color: #c9a227;
+  flex-shrink: 0;
+}
+
+/* ===========================================
+   FEATURED EVENT - VIDEO SECTION
+   =========================================== */
+
+.dt-video-section {
+  background: #141414;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #2a2a2a;
+}
+
+.dt-video-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.dt-video-embed {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  background: #1a1a1a;
+}
+
+.dt-video-embed iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* ===========================================
+   FEATURED BADGE
+   =========================================== */
+
+.dt-featured-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #c9a227;
+  color: #000;
+  padding: 6px 14px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ===========================================
+   RICH CONTENT IMAGES
+   =========================================== */
+
+.dt-rich-content img {
+  border-radius: 12px;
+  cursor: zoom-in;
+  transition: transform 0.3s ease;
+}
+
+.dt-rich-content img:hover {
+  transform: scale(1.01);
+}
+
+.dt-image-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.dt-image-grid img {
+  width: 100%;
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.dt-image-caption {
+  font-size: 13px;
+  color: #666;
+  text-align: center;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .dt-image-grid {
+    grid-template-columns: 1fr;
+  }
+}
