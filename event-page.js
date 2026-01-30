@@ -88,6 +88,10 @@
     init() {
       const btn = document.getElementById('dt-event-favorite');
       if (!btn || !DT.slug) return;
+      
+      // Guard against double initialization
+      if (btn.dataset.dtInitialized) return;
+      btn.dataset.dtInitialized = 'true';
 
       this.updateButton(btn, this.isFavorited(DT.slug));
 
