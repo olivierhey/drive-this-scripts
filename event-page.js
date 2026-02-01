@@ -3,19 +3,6 @@
  * Version: 1.0.3
  */
 
-const PastEvent = {
-  init() {
-    const endDateEl = document.querySelector('[data-event-end]');
-    const startDateEl = document.querySelector('[data-event-start]');
-    
-    const endDateStr = endDateEl ? endDateEl.getAttribute('data-event-end') : '';
-    const startDateStr = startDateEl ? startDateEl.getAttribute('data-event-start') : '';
-    
-    console.log('DEBUG:', { endDateStr, startDateStr }); // <-- Diese Zeile
-    
-    const dateStr = endDateStr || startDateStr;
-
-
 // Global guard - prevent entire script from running twice
 if (window.DriveThisLoaded) {
   console.log('[Drive This] Already loaded, skipping');
