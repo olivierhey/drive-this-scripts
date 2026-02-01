@@ -1,6 +1,6 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.0.2
+ * Version: 1.0.3
  */
 
 // Global guard - prevent entire script from running twice
@@ -115,17 +115,15 @@ if (window.DriveThisLoaded) {
       const endDateEl = document.querySelector('[data-event-end]');
       const startDateEl = document.querySelector('[data-event-start]');
       
-      // Use end date if available, otherwise fall back to start date
-      const dateEl = endDateEl || startDateEl;
-      if (!dateEl) return;
+      // Get the actual date string, preferring end date if it has a value
+      const endDateStr = endDateEl ? endDateEl.getAttribute('data-event-end') : '';
+      const startDateStr = startDateEl ? startDateEl.getAttribute('data-event-start') : '';
+      
+      // Use end date if it has a value, otherwise fall back to start date
+      const dateStr = endDateStr || startDateStr;
+      if (!dateStr || dateStr.includes('{{')) return;
 
-      const endDateStr = endDateEl 
-        ? endDateEl.getAttribute('data-event-end')
-        : startDateEl.getAttribute('data-event-start');
-        
-      if (!endDateStr || endDateStr.includes('{{')) return;
-
-      const endDate = new Date(endDateStr);
+      const endDate = new Date(dateStr);
       endDate.setHours(23, 59, 59, 999);
 
       const today = new Date();
