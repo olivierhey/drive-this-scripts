@@ -1,6 +1,6 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.0.1
+ * Version: 1.0.2
  */
 
 // Global guard - prevent entire script from running twice
@@ -113,9 +113,16 @@ if (window.DriveThisLoaded) {
   const PastEvent = {
     init() {
       const endDateEl = document.querySelector('[data-event-end]');
-      if (!endDateEl) return;
+      const startDateEl = document.querySelector('[data-event-start]');
+      
+      // Use end date if available, otherwise fall back to start date
+      const dateEl = endDateEl || startDateEl;
+      if (!dateEl) return;
 
-      const endDateStr = endDateEl.getAttribute('data-event-end');
+      const endDateStr = endDateEl 
+        ? endDateEl.getAttribute('data-event-end')
+        : startDateEl.getAttribute('data-event-start');
+        
       if (!endDateStr || endDateStr.includes('{{')) return;
 
       const endDate = new Date(endDateStr);
