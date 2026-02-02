@@ -26,26 +26,48 @@
    * Initialize horizontal scroll enhancement
    */
   function initScrollEnhancement() {
-    const container = document.querySelector(CONFIG.selectors.list);
-    if (!container) {
+    const listEl = document.querySelector(CONFIG.selectors.list);
+    const wrapperEl = document.querySelector(CONFIG.selectors.wrapper);
+    
+    if (!listEl && !wrapperEl) {
       console.warn('[Drive This] Event list container not found');
       return;
     }
 
-    const wrapper = container.closest(CONFIG.selectors.wrapper) || container.parentElement;
-    wrapper.style.position = 'relative';
+    // Determine which element actually scrolls (has overflow)
+    // The scrolling element is the one we attach scroll listeners to
+    // The positioning parent is where we put the chevrons
+    let scrollContainer, positionParent;
+    
+    if (wrapperEl) {
+      const wrapperStyle = window.getComputedStyle(wrapperEl);
+      const wrapperScrolls = wrapperStyle.overflowX === 'auto' || wrapperStyle.overflowX === 'scroll';
+      
+      if (wrapperScrolls) {
+        // .horizontal-scroll is the scrolling element
+        scrollContainer = wrapperEl;
+        positionParent = wrapperEl.parentElement;
+      } else {
+        // .cru-ncf-map-item-list scrolls inside .horizontal-scroll
+        scrollContainer = listEl || wrapperEl;
+        positionParent = wrapperEl;
+      }
+    } else {
+      scrollContainer = listEl;
+      positionParent = listEl.parentElement;
+    }
 
     // Create chevrons
-    const chevrons = createChevrons(wrapper, container);
+    const chevrons = createChevrons(positionParent, scrollContainer);
     
     // Setup drag-to-scroll
-    setupDragScroll(container);
+    setupDragScroll(scrollContainer);
     
     // Setup wheel Y→X translation
-    setupWheelScroll(container);
+    setupWheelScroll(scrollContainer);
     
     // Setup scroll listener for chevron visibility
-    setupScrollListener(container, chevrons);
+    setupScrollListener(scrollContainer, chevrons);
 
     console.log('[Drive This] Map scroll enhancement initialized');
   }
@@ -53,18 +75,13 @@
   /**
    * Create and inject chevron buttons
    */
-  function createChevrons(wrapper, container) {
-    // Create a non-scrolling wrapper for the chevrons
-    let chevronWrapper = wrapper.parentElement.querySelector('.dt-scroll-chevron-wrapper');
-    if (!chevronWrapper) {
-      // Ensure parent has relative positioning
-      wrapper.parentElement.style.position = 'relative';
-      
-      chevronWrapper = document.createElement('div');
-      chevronWrapper.className = 'dt-scroll-chevron-wrapper';
-      wrapper.parentElement.appendChild(chevronWrapper);
+  function createChevrons(positionParent, scrollContainer) {
+    // Ensure parent has relative positioning for absolute children
+    const parentStyle = window.getComputedStyle(positionParent);
+    if (parentStyle.position === 'static') {
+      positionParent.style.position = 'relative';
     }
-
+    
     const leftChevron = document.createElement('button');
     leftChevron.className = 'dt-scroll-chevron dt-scroll-left';
     leftChevron.innerHTML = CHEVRON_LEFT;
@@ -75,16 +92,19 @@
     rightChevron.innerHTML = CHEVRON_RIGHT;
     rightChevron.setAttribute('aria-label', 'Scroll right');
 
-    chevronWrapper.appendChild(leftChevron);
-    chevronWrapper.appendChild(rightChevron);
+    // Add to position parent
+    positionParent.appendChild(leftChevron);
+    positionParent.appendChild(rightChevron);
 
-    // Click handlers
-    leftChevron.addEventListener('click', () => {
-      container.scrollBy({ left: -CONFIG.scrollAmount, behavior: 'smooth' });
+    // Click handlers - scroll the scroll container
+    leftChevron.addEventListener('click', (e) => {
+      e.stopPropagation();
+      scrollContainer.scrollBy({ left: -CONFIG.scrollAmount, behavior: 'smooth' });
     });
 
-    rightChevron.addEventListener('click', () => {
-      container.scrollBy({ left: CONFIG.scrollAmount, behavior: 'smooth' });
+    rightChevron.addEventListener('click', (e) => {
+      e.stopPropagation();
+      scrollContainer.scrollBy({ left: CONFIG.scrollAmount, behavior: 'smooth' });
     });
 
     return { left: leftChevron, right: rightChevron };
