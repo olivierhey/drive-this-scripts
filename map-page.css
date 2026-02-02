@@ -23,13 +23,18 @@
 
 .dt-scroll-chevron {
   position: absolute;
-  top: 50%;
+  top: 53%;
   transform: translateY(-50%);
   pointer-events: auto;
   
   /* Sizing */
   width: 40px;
   height: 40px;
+  
+  /* Center the SVG */
+  display: flex;
+  align-items: center;
+  justify-content: center;
   
   /* Appearance */
   background: rgba(0, 0, 0, 0.7);
