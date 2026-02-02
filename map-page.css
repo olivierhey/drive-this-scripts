@@ -5,6 +5,20 @@
  */
 
 /* ==========================================================================
+   SCROLL CHEVRON WRAPPER
+   ========================================================================== */
+
+.dt-scroll-chevron-wrapper {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ==========================================================================
    SCROLL CHEVRONS
    ========================================================================== */
 
@@ -12,7 +26,7 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 100;
+  pointer-events: auto;
   
   /* Size & Shape */
   width: 44px;

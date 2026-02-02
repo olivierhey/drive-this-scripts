@@ -54,6 +54,17 @@
    * Create and inject chevron buttons
    */
   function createChevrons(wrapper, container) {
+    // Create a non-scrolling wrapper for the chevrons
+    let chevronWrapper = wrapper.parentElement.querySelector('.dt-scroll-chevron-wrapper');
+    if (!chevronWrapper) {
+      // Ensure parent has relative positioning
+      wrapper.parentElement.style.position = 'relative';
+      
+      chevronWrapper = document.createElement('div');
+      chevronWrapper.className = 'dt-scroll-chevron-wrapper';
+      wrapper.parentElement.appendChild(chevronWrapper);
+    }
+
     const leftChevron = document.createElement('button');
     leftChevron.className = 'dt-scroll-chevron dt-scroll-left';
     leftChevron.innerHTML = CHEVRON_LEFT;
@@ -64,8 +75,8 @@
     rightChevron.innerHTML = CHEVRON_RIGHT;
     rightChevron.setAttribute('aria-label', 'Scroll right');
 
-    wrapper.appendChild(leftChevron);
-    wrapper.appendChild(rightChevron);
+    chevronWrapper.appendChild(leftChevron);
+    chevronWrapper.appendChild(rightChevron);
 
     // Click handlers
     leftChevron.addEventListener('click', () => {
