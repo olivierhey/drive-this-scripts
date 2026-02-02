@@ -1,200 +1,111 @@
 /**
- * Drive This - Map Page Styles
- * Horizontal scroll UX enhancement
- * Version: 1.0.0
+ * Drive This - Map Page Scroll Enhancement v1.2.0
+ * CSS for chevron navigation with 2-second delay on page load
  */
 
 /* ==========================================================================
-   SCROLL CHEVRONS - Absolute positioned in wrapper
+   SCROLL CHEVRON WRAPPER
+   ========================================================================== */
+
+.dt-scroll-chevron-wrapper {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ==========================================================================
+   SCROLL CHEVRONS
    ========================================================================== */
 
 .dt-scroll-chevron {
   position: absolute;
-  top: 53%;
+  top: 50%;
   transform: translateY(-50%);
-  z-index: 100;
+  pointer-events: auto;
   
-  /* Size & Shape */
-  width: 44px;
-  height: 44px;
-  border: none;
-  border-radius: 50%;
+  /* Sizing */
+  width: 40px;
+  height: 40px;
   
   /* Appearance */
   background: rgba(0, 0, 0, 0.7);
-  color: #fff;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  
-  /* Layout */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  /* Interaction */
+  border: none;
+  border-radius: 50%;
   cursor: pointer;
   
-  /* Hidden by default */
+  /* Hidden by default - requires BOTH is-visible AND dt-chevrons-ready */
   opacity: 0;
   pointer-events: none;
   
   /* Transitions */
-  transition: 
-    opacity 0.25s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
+  transition: opacity 0.25s ease, background 0.2s ease, transform 0.2s ease;
 }
 
-.dt-scroll-chevron.is-visible {
+/* Only show when both conditions met: scroll position AND delay elapsed */
+.dt-scroll-chevron.is-visible.dt-chevrons-ready {
   opacity: 1;
   pointer-events: auto;
-}
-
-.dt-scroll-chevron:hover {
-  background: rgba(0, 0, 0, 0.9);
-  transform: translateY(-50%) scale(1.08);
-}
-
-.dt-scroll-chevron:active {
-  transform: translateY(-50%) scale(0.95);
-}
-
-.dt-scroll-chevron:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
-}
-
-.dt-scroll-chevron svg {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
 }
 
 /* Positioning */
-.dt-scroll-left {
+.dt-scroll-chevron-left {
   left: 12px;
 }
 
-.dt-scroll-right {
+.dt-scroll-chevron-right {
   right: 12px;
 }
 
-/* Mobile: slightly smaller */
-@media (max-width: 767px) {
-  .dt-scroll-chevron {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .dt-scroll-chevron svg {
-    width: 18px;
-    height: 18px;
-  }
-  
-  .dt-scroll-left {
-    left: 8px;
-  }
-  
-  .dt-scroll-right {
-    right: 8px;
-  }
+/* Icons */
+.dt-scroll-chevron svg {
+  width: 24px;
+  height: 24px;
+  stroke: white;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }
 
+/* Hover states */
+.dt-scroll-chevron:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: translateY(-50%) scale(1.1);
+}
+
+/* Focus states */
+.dt-scroll-chevron:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+}
 
 /* ==========================================================================
-   DRAG-TO-SCROLL CURSOR STATES
-   ========================================================================== */
-
-.cru-ncf-map-item-list {
-  cursor: grab;
-}
-
-.cru-ncf-map-item-list.is-dragging {
-  cursor: grabbing;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* Prevent accidental clicks during drag */
-.cru-ncf-map-item-list.is-dragging * {
-  pointer-events: none;
-}
-
-/* Re-enable pointer events for chevrons */
-.cru-ncf-map-item-list.is-dragging ~ .dt-scroll-chevron {
-  pointer-events: auto;
-}
-
-
-/* ==========================================================================
-   GRADIENT EDGE HINTS (Optional)
-   Shows subtle gradient at edges when content overflows
+   DRAG CURSOR
    ========================================================================== */
 
 .horizontal-scroll {
-  position: relative;
+  cursor: grab;
 }
 
-.horizontal-scroll::before,
-.horizontal-scroll::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 40px;
-  pointer-events: none;
-  z-index: 50;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+.horizontal-scroll.is-dragging {
+  cursor: grabbing;
+  user-select: none;
 }
-
-.horizontal-scroll::before {
-  left: 0;
-  background: linear-gradient(to right, rgba(0, 0, 0, 0.3), transparent);
-}
-
-.horizontal-scroll::after {
-  right: 0;
-  background: linear-gradient(to left, rgba(0, 0, 0, 0.3), transparent);
-}
-
-/* Show gradients when scrolled (controlled via JS class) */
-.horizontal-scroll.has-scroll-left::before {
-  opacity: 1;
-}
-
-.horizontal-scroll.has-scroll-right::after {
-  opacity: 1;
-}
-
 
 /* ==========================================================================
-   SCROLL HINT ANIMATION (First Visit)
-   Subtle bounce animation to indicate scrollability
+   MOBILE - Hide chevrons, touch is preferred
    ========================================================================== */
 
-@keyframes dt-scroll-hint {
-  0%, 100% {
-    transform: translateY(-50%);
+@media (max-width: 767px) {
+  .dt-scroll-chevron-wrapper {
+    display: none;
   }
-  50% {
-    transform: translateY(-50%) translateX(-4px);
+  
+  .horizontal-scroll {
+    cursor: default;
   }
-}
-
-@keyframes dt-scroll-hint-right {
-  0%, 100% {
-    transform: translateY(-50%);
-  }
-  50% {
-    transform: translateY(-50%) translateX(4px);
-  }
-}
-
-.dt-scroll-chevron.is-visible.show-hint.dt-scroll-left {
-  animation: dt-scroll-hint 1s ease-in-out 2;
-}
-
-.dt-scroll-chevron.is-visible.show-hint.dt-scroll-right {
-  animation: dt-scroll-hint-right 1s ease-in-out 2;
 }
