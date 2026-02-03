@@ -76,14 +76,15 @@
   display: inline-flex !important;
   background: #fff !important;
   color: #000 !important;
-  padding: 6px 12px !important;
+  padding: 4px 8px !important;
   border-radius: 4px !important;
-  font-size: 12px !important;
+  font-size: 0.8em !important;
   font-weight: 500 !important;
   margin-right: 4px !important;
-  line-height: 1.2 !important;
+  line-height: 1 !important;
   white-space: nowrap !important;
   text-decoration: none !important;
+  margin-bottom: 4px !important;
 }
 
 /* ===========================================
