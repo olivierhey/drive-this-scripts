@@ -1,6 +1,6 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.1.0
+ * Version: 1.1.1
  */
 
 // Global guard - prevent entire script from running twice
@@ -398,8 +398,10 @@ if (window.DriveThisLoaded) {
       const d = await r.json();
       if (!d.daily?.temperature_2m_max) return;
 
+      const exactDates = [cy - 1, cy - 2, cy - 3].map(y => `${y}-${md}`);
       let ts = 0, ct = 0, wcs = [];
       d.daily.time.forEach((t, i) => {
+        if (!exactDates.includes(t)) return;
         const avg = (d.daily.temperature_2m_max[i] + d.daily.temperature_2m_min[i]) / 2;
         if (!isNaN(avg)) { ts += avg; ct++; }
         if (d.daily.weathercode?.[i] != null) wcs.push(d.daily.weathercode[i]);
