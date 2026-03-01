@@ -461,8 +461,9 @@ if (window.DriveThisLoaded) {
       const badge = parent.querySelector('.dt-past-event-badge-detail');
 
       const startText = start.textContent.trim();
-      const dashText = dash ? dash.textContent.trim() : '';
       const endText = end ? end.textContent.trim() : '';
+      // Only show dash if there is an actual end date different from start
+      const dashText = (end && endText && endText !== startText) ? (dash ? dash.textContent.trim() : '–') : '';
 
       const combined = document.createElement('div');
       combined.textContent = [startText, dashText, endText].filter(Boolean).join(' ');
