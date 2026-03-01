@@ -319,11 +319,21 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
-  background: #f3f4f6;
-  border-radius: 8px;
   margin: 12px 0;
 }
-.dt-page-weather-icon { width: 32px; height: 32px; }
-.dt-page-weather-temp { font-size: 1.1rem; font-weight: 600; color: #111; }
-.dt-page-weather-label { font-size: 0.8rem; color: #999; margin-left: 4px; }
+.dt-page-weather-icon {
+  width: 32px;
+  height: 32px;
+  filter: brightness(0) invert(1);
+}
+.dt-page-weather-temp {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #fff;
+}
+.dt-page-weather-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #fff;
+  margin-left: 4px;
+}
