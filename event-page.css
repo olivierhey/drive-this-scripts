@@ -1,7 +1,13 @@
 /**
  * DRIVE THIS - Event Page Styles
- * Version: 1.0.0
+ * Version: 1.0.1
  */
+
+.sidebar-info-date,
+.date-bis,
+.sidebar-info-date-end {
+  display: inline !important;
+}
 
 /* ===========================================
    FAVORITE BUTTON
