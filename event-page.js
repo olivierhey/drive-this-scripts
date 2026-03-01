@@ -1,6 +1,6 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.1.2
+ * Version: 1.1.0
  */
 
 // Global guard - prevent entire script from running twice
@@ -456,6 +456,10 @@ if (window.DriveThisLoaded) {
       if (!start) return;
 
       const parent = start.parentElement;
+
+      // Rescue badge before clearing innerHTML
+      const badge = parent.querySelector('.dt-past-event-badge-detail');
+
       const startText = start.textContent.trim();
       const dashText = dash ? dash.textContent.trim() : '';
       const endText = end ? end.textContent.trim() : '';
@@ -465,6 +469,7 @@ if (window.DriveThisLoaded) {
       combined.style.cssText = 'color:inherit;font-size:inherit;font-weight:inherit;';
 
       parent.innerHTML = '';
+      if (badge) parent.appendChild(badge);
       parent.appendChild(combined);
 
       DT.log('Date display combined');
