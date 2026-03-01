@@ -3,10 +3,17 @@
  * Version: 1.0.1
  */
 
+.meta-date {
+  flex-wrap: nowrap !important;
+  align-items: baseline !important;
+}
+
 .sidebar-info-date,
 .date-bis,
 .sidebar-info-date-end {
   display: inline !important;
+  width: auto !important;
+  flex-shrink: 0;
 }
 
 /* ===========================================
