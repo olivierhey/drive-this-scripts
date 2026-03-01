@@ -1,6 +1,6 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.0.3
+ * Version: 1.1.0
  */
 
 // Global guard - prevent entire script from running twice
@@ -113,17 +113,12 @@ if (window.DriveThisLoaded) {
   const PastEvent = {
     init() {
       const endDateEl = document.querySelector('[data-event-end]');
-      const startDateEl = document.querySelector('[data-event-start]');
-      
-      // Get the actual date string, preferring end date if it has a value
-      const endDateStr = endDateEl ? endDateEl.getAttribute('data-event-end') : '';
-      const startDateStr = startDateEl ? startDateEl.getAttribute('data-event-start') : '';
-      
-      // Use end date if it has a value, otherwise fall back to start date
-      const dateStr = endDateStr || startDateStr;
-      if (!dateStr || dateStr.includes('{{')) return;
+      if (!endDateEl) return;
 
-      const endDate = new Date(dateStr);
+      const endDateStr = endDateEl.getAttribute('data-event-end');
+      if (!endDateStr || endDateStr.includes('{{')) return;
+
+      const endDate = new Date(endDateStr);
       endDate.setHours(23, 59, 59, 999);
 
       const today = new Date();
@@ -305,6 +300,148 @@ if (window.DriveThisLoaded) {
   };
 
   // ===========================================
+  // WEATHER WIDGET
+  // Read data-lat, data-lng, data-date from #dt-event-weather-trigger
+  // Renders into #dt-page-weather
+  // Same API logic as the map drawer weather
+  // ===========================================
+
+  const Weather = {
+    API_KEY: 'e5472fae42c64a6f3aae2820d281c8b9',
+
+    icons: {
+      sun: 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b21c3c8fef0fee1f6d3a2_sun.svg',
+      moon: 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b22026f960232a5ee2b6b_moon.svg',
+      'sun-cloud': 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b225475549a09cf3b7ced_sun-cloud.svg',
+      'moon-cloud': 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b225a31bcf1568b3ab447_moon-cloud.svg',
+      cloud: 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b22900f79853fb27e734d_cloud.svg',
+      clouds: 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b22ccca25ab23b4fac45f_clouds.svg',
+      rain: 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b22edf8b5965f7dae4770_rain.svg',
+      'sun-rain': 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b2505122b568fa8a400d1_sun-rain.svg',
+      'moon-rain': 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b25ab816fa5375bb8d16d_moon-rain.svg',
+      storm: 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b25ec30d703bac4ed9167_storm.svg',
+      snow: 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b2611704de73bf8fca88c_snow.svg',
+      fog: 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b27035b7e873366cebd4e_fog.svg',
+    },
+
+    iconMap: {
+      '01d':'sun','02d':'sun-cloud','03d':'cloud','04d':'clouds',
+      '09d':'rain','10d':'sun-rain','11d':'storm','13d':'snow','50d':'fog',
+      '01n':'moon','02n':'moon-cloud','03n':'cloud','04n':'clouds',
+      '09n':'rain','10n':'moon-rain','11n':'storm','13n':'snow','50n':'fog',
+    },
+
+    wmoToIcon(c) {
+      if (c <= 1) return 'sun';
+      if (c === 2) return 'sun-cloud';
+      if (c === 3) return 'clouds';
+      if (c >= 45 && c <= 48) return 'fog';
+      if (c >= 51 && c <= 67) return 'rain';
+      if (c >= 71 && c <= 77) return 'snow';
+      if (c >= 80 && c <= 82) return 'sun-rain';
+      if (c >= 95) return 'storm';
+      return 'sun';
+    },
+
+    render(iconKey, temp, historical) {
+      const container = document.getElementById('dt-page-weather');
+      if (!container) return;
+
+      const iconUrl = this.icons[iconKey] || this.icons['cloud'];
+      const label = historical ? 'Typical for this date' : 'Weather forecast';
+
+      container.innerHTML = `
+        <div class="dt-page-weather-inner">
+          <img class="dt-page-weather-icon" src="${iconUrl}" alt="Weather">
+          <span class="dt-page-weather-temp">${temp}°C</span>
+          <span class="dt-page-weather-label">${label}</span>
+        </div>`;
+
+      DT.log(`Weather rendered: ${temp}°C (${label})`);
+    },
+
+    async fetchForecast(lat, lng, daysAhead) {
+      const r = await fetch(
+        `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&appid=${this.API_KEY}`
+      );
+      if (!r.ok) throw new Error('Forecast API error: ' + r.status);
+      const d = await r.json();
+
+      const target = new Date();
+      target.setDate(target.getDate() + daysAhead);
+      target.setHours(12, 0, 0, 0);
+
+      let best = null, minDiff = Infinity;
+      for (const item of d.list) {
+        const diff = Math.abs(new Date(item.dt * 1000) - target);
+        if (diff < minDiff) { minDiff = diff; best = item; }
+      }
+      if (!best) return;
+
+      const iconKey = this.iconMap[best.weather[0].icon] || 'cloud';
+      this.render(iconKey, Math.round(best.main.temp), false);
+    },
+
+    async fetchHistorical(lat, lng, eventDate) {
+      const m = eventDate.getMonth();
+      const dy = eventDate.getDate();
+      const cy = new Date().getFullYear();
+      const p = n => String(n).padStart(2, '0');
+      const md = `${p(m + 1)}-${p(dy)}`;
+
+      const r = await fetch(
+        `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}` +
+        `&start_date=${cy - 3}-${md}&end_date=${cy - 1}-${md}` +
+        `&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`
+      );
+      if (!r.ok) return;
+      const d = await r.json();
+      if (!d.daily?.temperature_2m_max) return;
+
+      let ts = 0, ct = 0, wcs = [];
+      d.daily.time.forEach((t, i) => {
+        const avg = (d.daily.temperature_2m_max[i] + d.daily.temperature_2m_min[i]) / 2;
+        if (!isNaN(avg)) { ts += avg; ct++; }
+        if (d.daily.weathercode?.[i] != null) wcs.push(d.daily.weathercode[i]);
+      });
+      if (!ct) return;
+
+      const mc = wcs.sort((a, b) =>
+        wcs.filter(v => v === b).length - wcs.filter(v => v === a).length
+      )[0];
+
+      this.render(this.wmoToIcon(mc), Math.round(ts / ct), true);
+    },
+
+    async init() {
+      const trigger = document.getElementById('dt-event-weather-trigger');
+      if (!trigger) return;
+
+      const lat = trigger.dataset.lat;
+      const lng = trigger.dataset.lng;
+      const date = trigger.dataset.date;
+
+      if (!lat || !lng || !date || date.includes('{')) return;
+
+      const eventDate = new Date(date);
+      const daysAhead = Math.ceil((eventDate - new Date()) / 864e5);
+
+      // Don't show weather for past events
+      if (daysAhead < 0) return;
+
+      try {
+        if (daysAhead <= 5) {
+          await this.fetchForecast(lat, lng, daysAhead);
+        } else {
+          await this.fetchHistorical(lat, lng, eventDate);
+        }
+      } catch (e) {
+        DT.log('Weather error: ' + e.message);
+      }
+    }
+  };
+
+  // ===========================================
   // INITIALIZE ALL
   // ===========================================
   
@@ -315,12 +452,13 @@ if (window.DriveThisLoaded) {
     Lightbox.init();
     VideoEmbed.init();
     Deals.init();
+    Weather.init();
     
     DT.log('All modules ready');
   });
 
   // Expose for debugging
-  window.DriveThis = { DT, Favorites, Lightbox };
+  window.DriveThis = { DT, Favorites, Lightbox, Weather };
 
 })();
 
