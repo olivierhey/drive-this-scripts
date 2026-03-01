@@ -1,6 +1,6 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.1.1
+ * Version: 1.1.2
  */
 
 // Global guard - prevent entire script from running twice
@@ -444,12 +444,41 @@ if (window.DriveThisLoaded) {
   };
 
   // ===========================================
+  // DATE DISPLAY
+  // Combines start, dash and end date into one line
+  // ===========================================
+
+  const DateDisplay = {
+    init() {
+      const start = document.querySelector('.sidebar-info-date');
+      const dash = document.querySelector('.date-bis');
+      const end = document.querySelector('.sidebar-info-date-end');
+      if (!start) return;
+
+      const parent = start.parentElement;
+      const startText = start.textContent.trim();
+      const dashText = dash ? dash.textContent.trim() : '';
+      const endText = end ? end.textContent.trim() : '';
+
+      const combined = document.createElement('div');
+      combined.textContent = [startText, dashText, endText].filter(Boolean).join(' ');
+      combined.style.cssText = 'color:inherit;font-size:inherit;font-weight:inherit;';
+
+      parent.innerHTML = '';
+      parent.appendChild(combined);
+
+      DT.log('Date display combined');
+    }
+  };
+
+  // ===========================================
   // INITIALIZE ALL
   // ===========================================
   
   DT.onReady(() => {
     Favorites.init();
     PastEvent.init();
+    DateDisplay.init();
     CardLinks.init();
     Lightbox.init();
     VideoEmbed.init();
@@ -460,7 +489,7 @@ if (window.DriveThisLoaded) {
   });
 
   // Expose for debugging
-  window.DriveThis = { DT, Favorites, Lightbox, Weather };
+  window.DriveThis = { DT, Favorites, Lightbox, Weather, DateDisplay };
 
 })();
 
