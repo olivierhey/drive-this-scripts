@@ -4,16 +4,13 @@
  */
 
 .meta-date {
-  flex-wrap: nowrap !important;
-  align-items: baseline !important;
+  display: block !important;
 }
 
 .sidebar-info-date,
 .date-bis,
 .sidebar-info-date-end {
   display: inline !important;
-  width: auto !important;
-  flex-shrink: 0;
 }
 
 /* ===========================================
