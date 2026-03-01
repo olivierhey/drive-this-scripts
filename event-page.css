@@ -47,6 +47,10 @@
   border-radius: 50%;
 }
 
+.dt-event-favorite .dt-favorite-text {
+  display: none;
+}
+
 .dt-event-favorite.icon-only .dt-favorite-text {
   display: none;
 }
