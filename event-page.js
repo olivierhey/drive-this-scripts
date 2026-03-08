@@ -1,6 +1,7 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.1.0
+ * Version: 1.4.0
+ * Fix: Weather widget now shows for ongoing events (uses end date)
  */
 
 // Global guard - prevent entire script from running twice
@@ -301,9 +302,10 @@ if (window.DriveThisLoaded) {
 
   // ===========================================
   // WEATHER WIDGET
-  // Read data-lat, data-lng, data-date from #dt-event-weather-trigger
+  // Read data-lat, data-lng, data-date, data-end from #dt-event-weather-trigger
   // Renders into #dt-page-weather
-  // Same API logic as the map drawer weather
+  // v1.4.0 FIX: Shows weather for ongoing events; falls back to start date
+  //             if no end date (single-day events)
   // ===========================================
 
   const Weather = {
@@ -422,20 +424,30 @@ if (window.DriveThisLoaded) {
       const lat = trigger.dataset.lat;
       const lng = trigger.dataset.lng;
       const date = trigger.dataset.date;
+      const endDate = trigger.dataset.end; // may be empty for single-day events
 
       if (!lat || !lng || !date || date.includes('{')) return;
 
-      const eventDate = new Date(date);
-      const daysAhead = Math.ceil((eventDate - new Date()) / 864e5);
+      const eventStart = new Date(date);
+      const now = new Date();
 
-      // Don't show weather for past events
-      if (daysAhead < 0) return;
+      // Use end date if available, otherwise fall back to start date (single-day event)
+      const eventEnd = (endDate && !endDate.includes('{'))
+        ? new Date(endDate)
+        : new Date(eventStart);
+      eventEnd.setHours(23, 59, 59, 999);
+
+      // Only hide weather once the event is completely over
+      if (eventEnd < now) return;
+
+      // For ongoing events daysAhead is 0, which fetches today's live forecast
+      const daysAhead = Math.max(0, Math.ceil((eventStart - now) / 864e5));
 
       try {
         if (daysAhead <= 5) {
           await this.fetchForecast(lat, lng, daysAhead);
         } else {
-          await this.fetchHistorical(lat, lng, eventDate);
+          await this.fetchHistorical(lat, lng, eventStart);
         }
       } catch (e) {
         DT.log('Weather error: ' + e.message);
