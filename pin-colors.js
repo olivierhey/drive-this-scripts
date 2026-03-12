@@ -2,7 +2,7 @@
  * Drive This – Dynamic Pin Coloring
  * Dark pin with colored country ring (stroke only).
  *
- * Version: 1.3.0
+ * Version: 1.4.0
  */
 
 (function () {
@@ -12,7 +12,7 @@
   const PIN_SELECTOR = '.cru-ncf-pin';
   const DATA_SELECTOR = '[data-slug]';
   const FALLBACK_COLOR = '#D45D3F';
-  const OBSERVER_TIMEOUT_MS = 10000;
+  const OBSERVER_TIMEOUT_MS = 30000;
 
   function makePinDataUri(color) {
     const svg = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="9" fill="#2a2a3a" stroke="${color}" stroke-width="3"/></svg>`;
@@ -46,12 +46,14 @@
 
   function colorAllPins(colorMap) {
     document.querySelectorAll(PIN_SELECTOR).forEach(pin => {
-      if (pin.dataset.dtColored) return;
       const slug = getSlugFromPin(pin);
       if (!slug) return;
       const color = colorMap[slug] || FALLBACK_COLOR;
-      pin.style.backgroundImage = makePinDataUri(color);
-      pin.dataset.dtColored = '1';
+      const uri = makePinDataUri(color);
+      // Always re-apply in case Dynamic Map overwrote it
+      if (pin.style.backgroundImage !== uri) {
+        pin.style.backgroundImage = uri;
+      }
     });
   }
 
