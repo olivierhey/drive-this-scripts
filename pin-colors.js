@@ -1,9 +1,9 @@
 /**
  * Drive This – Dynamic Pin Coloring
- * Only targets default pins via [ncf-pinstyle="default"] attribute selector.
- * Favorites, past events and other pin styles are untouched.
+ * Dark pin with colored country ring.
+ * Excludes favorite pins (is-favorite-pin) and filtered-out pins.
  *
- * Version: 1.6.0
+ * Version: 1.7.0
  */
 
 (function () {
@@ -44,8 +44,8 @@
 
     const rules = Object.entries(colorMap).map(([slug, color]) => {
       const uri = makePinDataUri(color);
-      // Only target default pins – favorites/past-events have different ncf-pinstyle values
-      return `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"] { background-image: ${uri} !important; }`;
+      // Exclude favorite pins (is-favorite-pin) – only target plain default pins
+      return `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) { background-image: ${uri} !important; }`;
     });
 
     const style = document.createElement('style');
@@ -58,12 +58,10 @@
 
   function init() {
     const colorMap = buildColorMap();
-
     if (Object.keys(colorMap).length === 0) {
       console.warn('[DT Pin Colors] No color data found.');
       return;
     }
-
     injectStyles(colorMap);
   }
 
