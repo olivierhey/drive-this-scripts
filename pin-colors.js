@@ -1,18 +1,17 @@
 /**
  * Drive This – Dynamic Pin Coloring
- * Dark pin with colored country ring (stroke only).
+ * Injects a <style> tag with per-slug CSS rules using !important
+ * so Dynamic Map cannot overwrite the colors.
  *
- * Version: 1.4.0
+ * Version: 1.5.0
  */
 
 (function () {
   'use strict';
 
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
-  const PIN_SELECTOR = '.cru-ncf-pin';
   const DATA_SELECTOR = '[data-slug]';
   const FALLBACK_COLOR = '#D45D3F';
-  const OBSERVER_TIMEOUT_MS = 30000;
 
   function makePinDataUri(color) {
     const svg = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="9" fill="#2a2a3a" stroke="${color}" stroke-width="3"/></svg>`;
@@ -39,22 +38,24 @@
     return map;
   }
 
-  function getSlugFromPin(pinEl) {
-    const slugClass = [...pinEl.classList].find(c => c.startsWith(SLUG_CLASS_PREFIX));
-    return slugClass ? slugClass.slice(SLUG_CLASS_PREFIX.length) : null;
-  }
+  function injectStyles(colorMap) {
+    const existing = document.getElementById('dt-pin-colors');
+    if (existing) existing.remove();
 
-  function colorAllPins(colorMap) {
-    document.querySelectorAll(PIN_SELECTOR).forEach(pin => {
-      const slug = getSlugFromPin(pin);
-      if (!slug) return;
-      const color = colorMap[slug] || FALLBACK_COLOR;
+    const rules = Object.entries(colorMap).map(([slug, color]) => {
       const uri = makePinDataUri(color);
-      // Always re-apply in case Dynamic Map overwrote it
-      if (pin.style.backgroundImage !== uri) {
-        pin.style.backgroundImage = uri;
-      }
+      return `.${SLUG_CLASS_PREFIX}${slug} { background-image: ${uri} !important; }`;
     });
+
+    // Fallback for pins with no color match
+    rules.push(`.cru-ncf-pin:not([class*="${SLUG_CLASS_PREFIX}"]) { background-image: ${makePinDataUri(FALLBACK_COLOR)} !important; }`);
+
+    const style = document.createElement('style');
+    style.id = 'dt-pin-colors';
+    style.textContent = rules.join('\n');
+    document.head.appendChild(style);
+
+    console.log(`[DT Pin Colors] Injected ${rules.length - 1} color rules.`);
   }
 
   function init() {
@@ -65,12 +66,7 @@
       return;
     }
 
-    console.log(`[DT Pin Colors] Loaded ${Object.keys(colorMap).length} event colors.`);
-    colorAllPins(colorMap);
-
-    const observer = new MutationObserver(() => colorAllPins(colorMap));
-    observer.observe(document.body, { childList: true, subtree: true });
-    setTimeout(() => observer.disconnect(), OBSERVER_TIMEOUT_MS);
+    injectStyles(colorMap);
   }
 
   if (document.readyState === 'loading') {
