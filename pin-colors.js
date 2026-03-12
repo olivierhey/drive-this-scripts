@@ -1,9 +1,9 @@
 /**
  * Drive This – Dynamic Pin Coloring
- * Injects a <style> tag with per-slug CSS rules using !important
- * so Dynamic Map cannot overwrite the colors.
+ * Only targets default pins via [ncf-pinstyle="default"] attribute selector.
+ * Favorites, past events and other pin styles are untouched.
  *
- * Version: 1.5.0
+ * Version: 1.6.0
  */
 
 (function () {
@@ -44,18 +44,16 @@
 
     const rules = Object.entries(colorMap).map(([slug, color]) => {
       const uri = makePinDataUri(color);
-      return `.${SLUG_CLASS_PREFIX}${slug} { background-image: ${uri} !important; }`;
+      // Only target default pins – favorites/past-events have different ncf-pinstyle values
+      return `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"] { background-image: ${uri} !important; }`;
     });
-
-    // Fallback for pins with no color match
-    rules.push(`.cru-ncf-pin:not([class*="${SLUG_CLASS_PREFIX}"]) { background-image: ${makePinDataUri(FALLBACK_COLOR)} !important; }`);
 
     const style = document.createElement('style');
     style.id = 'dt-pin-colors';
     style.textContent = rules.join('\n');
     document.head.appendChild(style);
 
-    console.log(`[DT Pin Colors] Injected ${rules.length - 1} color rules.`);
+    console.log(`[DT Pin Colors] Injected ${rules.length} color rules.`);
   }
 
   function init() {
