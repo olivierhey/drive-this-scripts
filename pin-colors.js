@@ -1,9 +1,8 @@
 /**
  * Drive This – Dynamic Pin Coloring
  * Dark pin with colored country ring.
- * Excludes favorite pins (is-favorite-pin) and filtered-out pins.
  *
- * Version: 1.7.0
+ * Version: 1.9.0
  */
 
 (function () {
@@ -12,6 +11,12 @@
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
   const DATA_SELECTOR = '[data-slug]';
   const FALLBACK_COLOR = '#D45D3F';
+
+  const COLOR_OVERRIDES = {
+    'autopia-madrid': '#e96565',
+    'klassikwelt-bodensee': '#fabd61',
+    'techno-classica-salon': '#fabd61',
+  };
 
   function makePinDataUri(color) {
     const svg = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="9" fill="#2a2a3a" stroke="${color}" stroke-width="3"/></svg>`;
@@ -33,8 +38,11 @@
       if (!slug) return;
       const bg = getComputedStyle(el).backgroundColor;
       const hex = rgbToHex(bg);
-      if (hex) map[slug] = hex;
+      if (hex && hex !== '#ffffff' && hex !== '#000000') {
+        map[slug] = hex;
+      }
     });
+    Object.assign(map, COLOR_OVERRIDES);
     return map;
   }
 
@@ -44,9 +52,11 @@
 
     const rules = Object.entries(colorMap).map(([slug, color]) => {
       const uri = makePinDataUri(color);
-      // Exclude favorite pins (is-favorite-pin) – only target plain default pins
       return `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) { background-image: ${uri} !important; }`;
     });
+
+    // Favorite pins always on top
+    rules.push(`.cru-ncf-pin.is-favorite-pin { z-index: 9999 !important; }`);
 
     const style = document.createElement('style');
     style.id = 'dt-pin-colors';
