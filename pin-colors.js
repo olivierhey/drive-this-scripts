@@ -1,10 +1,9 @@
 /**
  * Drive This – Dynamic Pin Coloring
- * Reads country colors from a hidden Webflow Collection List
- * (BG color bound to CMS Color field, data-slug bound to CMS Slug).
- * Applies colors to Dynamic Map pin SVGs via slug matching.
+ * Replaces the CSS background-image of each map pin with a
+ * dynamically colored SVG data URI, matched via CMS slug → color.
  *
- * Version: 1.1.0
+ * Version: 1.2.0
  */
 
 (function () {
@@ -13,10 +12,16 @@
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
   const PIN_SELECTOR = '.cru-ncf-pin';
   const DATA_SELECTOR = '[data-slug]';
-  const FALLBACK_COLOR = '#E05C3A';
+  const FALLBACK_COLOR = '#D45D3F';
   const OBSERVER_TIMEOUT_MS = 10000;
 
-  /** Convert rgb(r, g, b) string returned by getComputedStyle to #rrggbb */
+  /** Generate an SVG data URI with the given fill color */
+  function makePinDataUri(color) {
+    const svg = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="9" fill="${color}" stroke="white" stroke-width="3"/></svg>`;
+    return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  }
+
+  /** Convert rgb(r, g, b) → #rrggbb */
   function rgbToHex(rgb) {
     const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
     if (!match) return null;
@@ -25,13 +30,12 @@
       .join('');
   }
 
-  /** Build slug → hex color map from the hidden Collection List */
+  /** Build slug → hex color map from hidden Collection List */
   function buildColorMap() {
     const map = {};
     document.querySelectorAll(DATA_SELECTOR).forEach(el => {
       const slug = el.dataset.slug?.trim();
       if (!slug) return;
-      // Read the CMS color via computed background-color
       const bg = getComputedStyle(el).backgroundColor;
       const hex = rgbToHex(bg);
       if (hex) map[slug] = hex;
@@ -39,7 +43,7 @@
     return map;
   }
 
-  /** Extract slug from pin class list, e.g. "ncf-slug-retro-classics-essen" */
+  /** Extract slug from pin class list */
   function getSlugFromPin(pinEl) {
     const slugClass = [...pinEl.classList].find(c =>
       c.startsWith(SLUG_CLASS_PREFIX)
@@ -47,26 +51,21 @@
     return slugClass ? slugClass.slice(SLUG_CLASS_PREFIX.length) : null;
   }
 
-  /** Apply color to all filled SVG shapes inside a pin */
+  /** Apply colored background-image to a single pin */
   function applyColorToPin(pinEl, color) {
-    pinEl.querySelectorAll('svg path, svg circle, svg rect, svg ellipse').forEach(shape => {
-      const fill = shape.getAttribute('fill');
-      if (fill && fill !== 'none') {
-        shape.setAttribute('fill', color);
-      }
-    });
-    pinEl.querySelectorAll('svg [style*="fill"]').forEach(shape => {
-      shape.style.fill = color;
-    });
+    pinEl.style.backgroundImage = makePinDataUri(color);
   }
 
   /** Color all currently rendered pins */
   function colorAllPins(colorMap) {
     document.querySelectorAll(PIN_SELECTOR).forEach(pin => {
+      // Skip already colored pins to avoid redundant work
+      if (pin.dataset.dtColored) return;
       const slug = getSlugFromPin(pin);
       if (!slug) return;
       const color = colorMap[slug] || FALLBACK_COLOR;
       applyColorToPin(pin, color);
+      pin.dataset.dtColored = '1';
     });
   }
 
