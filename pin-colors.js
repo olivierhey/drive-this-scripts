@@ -2,7 +2,7 @@
  * Drive This – Dynamic Pin Coloring
  * Dark pin with colored country ring.
  *
- * Version: 2.0.0
+ * Version: 2.1.0
  */
 (function () {
   'use strict';
@@ -15,7 +15,6 @@
     'techno-classica-salon': '#fabd61',
   };
   function makePinDataUri(color) {
-    // r="8" statt r="9" – Stroke bleibt innerhalb der viewBox
     const svg = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" fill="#2a2a3a" stroke="${color}" stroke-width="3"/></svg>`;
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   }
@@ -47,6 +46,9 @@
       const uri = makePinDataUri(color);
       return `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) { background-image: ${uri} !important; }`;
     });
+    // Past-event pins: NCF setzt kein ncf-pinstyle, lädt eigenes pin_idle.svg – wir überschreiben mit r="8" Fix
+    const pastPinUri = makePinDataUri('#888888');
+    rules.push(`.cru-ncf-pin.is-past-event:not(.is-favorite-pin) { background-image: ${pastPinUri} !important; }`);
     // Favorite pins leicht erhöht, aber UNTER den Tooltips
     rules.push(`.mapboxgl-marker:has(.is-favorite-pin) { z-index: 500 !important; }`);
     // Tooltips über alles
