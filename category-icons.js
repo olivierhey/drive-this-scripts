@@ -16,8 +16,8 @@
   const CSS = `
     .dt-category-icon {
       position: absolute;
-      top: 8px;
-      left: 8px;
+      top: 14px;
+      left: 18px;
       width: 18px;
       height: 18px;
       display: flex;
