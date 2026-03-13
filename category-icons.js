@@ -1,18 +1,16 @@
 /**
  * Drive This – Category Icons on Event Cards
- * Version: 1.4.0
+ * Version: 1.5.0
  */
 (function () {
   'use strict';
 
-  console.log('[DT Category Icons] Script geladen');
-
   const ICONS = {
-    'exhibitions': `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M240,208H224V115.55a16,16,0,0,0-6.93-13.27L134.93,45.53a16,16,0,0,0-18.11.29L38.86,102.36A16,16,0,0,0,32,115.55V208H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM208,208H144V160a16,16,0,0,0-16-16H128a16,16,0,0,0-16,16v48H48V115.55l77.85-56.82L208,115.64Z"/></svg>`,
-    'lifestyle':   `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M197.58,129.06,146,110l-19-51.62a15.92,15.92,0,0,0-30,0L78,110l-51.62,19a15.92,15.92,0,0,0,0,30L78,178l19,51.62a15.92,15.92,0,0,0,30,0L146,178l51.62-19a15.92,15.92,0,0,0,0-30ZM136,163.13,128,186l-8-22.87L97.13,155,120,147l8-22.87L136,147l22.87,8ZM224,72l-13.33,4.67L206,90.67a8,8,0,0,1-15.08,0L186.67,76.67,172,72a8,8,0,0,1,0-15.08l14.67-4.59L191.08,38a8,8,0,0,1,15.08,0l4.59,14.33L224,56.92a8,8,0,0,1,0,15.08ZM152,32l-9.33,3.27L139.41,44a8,8,0,0,1-15.08,0l-3.27-8.73L112,32a8,8,0,0,1,0-15.08l9.06-3.27L124.33,4a8,8,0,0,1,15.08,0l3.27,8.65L152,16a8,8,0,0,1,0,15.08Z"/></svg>`,
-    'meetups':     `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M244.8,150.4a8,8,0,0,1-11.2-1.6A51.6,51.6,0,0,0,192,128a8,8,0,0,1,0-16,24,24,0,1,0-23.24-30,8,8,0,1,1-15.5-4A40,40,0,1,1,219,117.51a67.27,67.27,0,0,1,27.43,21.68A8,8,0,0,1,244.8,150.4ZM190.92,212a8,8,0,1,1-13.84,8,57,57,0,0,0-98.16,0,8,8,0,1,1-13.84-8,72.06,72.06,0,0,1,33.74-29.92,48,48,0,1,1,58.36,0A72.06,72.06,0,0,1,190.92,212ZM128,176a32,32,0,1,0-32-32A32,32,0,0,0,128,176ZM87.24,98a8,8,0,1,0-15.5,4A24,24,0,1,1,48,128a8,8,0,0,1,0-16,51.6,51.6,0,0,0-41.6,21.6,8,8,0,1,1-12.8-9.6A67.27,67.27,0,0,1,21,102.49,40,40,0,1,1,87.24,98Z"/></svg>`,
-    'racing':      `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm56-120a8,8,0,0,1-8,8h-4.29l-21.4,42.8A8,8,0,0,1,143.16,150l-15.16-22.73L113.16,150a8,8,0,0,1-7.15,4.43,7.91,7.91,0,0,1-3.57-.85L81,142H80a8,8,0,0,1,0-16h4.29l21.4-42.8A8,8,0,0,1,112.84,80l15.16,22.73L142.84,80a8,8,0,0,1,10.72-2.43L175,89.54A8,8,0,0,1,184,96Z"/></svg>`,
-    'tours':       `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M237.43,170.6l-48-112a8,8,0,0,0-14.5-.4l-30.46,57.86L115.63,99.2a8,8,0,0,0-9.26,2L18.37,204.8A8,8,0,0,0,24,218c.29,0,.58,0,.87,0a8,8,0,0,0,5.9-2.59l83.44-92.47,29.56,17.72a8,8,0,0,0,10.44-2.56l25.82-45,38.54,89.92A8,8,0,0,0,226,188a8,8,0,0,0,11.43-17.4Z"/></svg>`,
+    'exhibitions': `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256"><path d="M136,216V32a8,8,0,0,0-12.44-6.65l-80,53.33A8,8,0,0,0,40,85.35V216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M136,88h72a8,8,0,0,1,8,8V216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="16" y1="216" x2="240" y2="216" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="112" x2="104" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="72" y1="112" x2="72" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="72" y1="168" x2="72" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="168" x2="104" y2="184" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>`,
+    'lifestyle':   `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256"><path d="M84.27,171.73l-55.09-20.3a7.92,7.92,0,0,1,0-14.86l55.09-20.3,20.3-55.09a7.92,7.92,0,0,1,14.86,0l20.3,55.09,55.09,20.3a7.92,7.92,0,0,1,0,14.86l-55.09,20.3-20.3,55.09a7.92,7.92,0,0,1-14.86,0Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="176" y1="16" x2="176" y2="64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="224" y1="72" x2="224" y2="104" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="152" y1="40" x2="200" y2="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="208" y1="88" x2="240" y2="88" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>`,
+    'meetups':     `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256"><path d="M192,120a59.91,59.91,0,0,1,48,24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M16,144a59.91,59.91,0,0,1,48-24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><circle cx="128" cy="144" r="40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M72,216a65,65,0,0,1,112,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M161,80a32,32,0,1,1,31,40" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M64,120A32,32,0,1,1,95,80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>`,
+    'racing':      `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256"><path d="M48,176c64-55.43,112,55.43,176,0V56C160,111.43,112,.57,48,56V224" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M48,116c64-55.43,112,55.43,176,0" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="168" y1="69.48" x2="168" y2="189.48" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="104" y1="42.52" x2="104" y2="162.52" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>`,
+    'tours':       `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 256 256"><circle cx="164" cy="52" r="20" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M8,200,81.1,75.94a8,8,0,0,1,13.8,0L168,200Z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><line x1="50.35" y1="128" x2="125.65" y2="128" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/><path d="M146.61,163.71l33.06-55.79a8,8,0,0,1,13.76,0L248,200H168" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/></svg>`,
   };
 
   const CSS = `
@@ -27,10 +25,10 @@
       justify-content: center;
       color: #000;
       pointer-events: none;
-      opacity: 0.5;
+      opacity: 0.6;
       z-index: 10;
     }
-    .dt-category-icon svg { display: block; width: 16px; height: 16px; }
+    .dt-category-icon svg { display: block; width: 18px; height: 18px; }
   `;
 
   let slugCatMap = {};
@@ -68,26 +66,21 @@
     style.textContent = CSS;
     document.head.appendChild(style);
 
-    // Warten bis Pins und Cards da sind
     let attempts = 0;
     const check = setInterval(() => {
       attempts++;
       const pins  = document.querySelectorAll('.cru-ncf-pin');
       const cards = document.querySelectorAll('.cru-ncf-map-list-item');
-      console.log(`[DT Category Icons] Interval check - Pins: ${pins.length} Cards: ${cards.length}`);
       if (pins.length === 0 || cards.length === 0) return;
 
-      // Map einmalig bauen wenn Pins da sind
       if (Object.keys(slugCatMap).length === 0) {
         slugCatMap = buildSlugCategoryMap();
       }
 
       addIcons();
-
       if (attempts >= 20) clearInterval(check);
     }, 500);
 
-    // MutationObserver hält Icons auch nach NCF Re-renders aktuell
     new MutationObserver(() => {
       if (Object.keys(slugCatMap).length === 0) return;
       addIcons();
