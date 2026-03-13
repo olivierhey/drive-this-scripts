@@ -1,9 +1,11 @@
 /**
  * Drive This – Category Icons on Event Cards
- * Version: 1.3.0
+ * Version: 1.4.0
  */
 (function () {
   'use strict';
+
+  console.log('[DT Category Icons] Script geladen');
 
   const ICONS = {
     'exhibitions': `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 256 256" fill="currentColor"><path d="M240,208H224V115.55a16,16,0,0,0-6.93-13.27L134.93,45.53a16,16,0,0,0-18.11.29L38.86,102.36A16,16,0,0,0,32,115.55V208H16a8,8,0,0,0,0,16H240a8,8,0,0,0,0-16ZM208,208H144V160a16,16,0,0,0-16-16H128a16,16,0,0,0-16,16v48H48V115.55l77.85-56.82L208,115.64Z"/></svg>`,
@@ -26,9 +28,12 @@
       color: #000;
       pointer-events: none;
       opacity: 0.5;
+      z-index: 10;
     }
     .dt-category-icon svg { display: block; width: 16px; height: 16px; }
   `;
+
+  let slugCatMap = {};
 
   function buildSlugCategoryMap() {
     const map = {};
@@ -44,7 +49,7 @@
     return map;
   }
 
-  function addIcons(slugCatMap) {
+  function addIcons() {
     document.querySelectorAll('.cru-ncf-map-list-item').forEach(card => {
       if (card.querySelector('.dt-category-icon')) return;
       const slug = card.dataset.slug?.trim();
@@ -63,19 +68,30 @@
     style.textContent = CSS;
     document.head.appendChild(style);
 
+    // Warten bis Pins und Cards da sind
+    let attempts = 0;
     const check = setInterval(() => {
+      attempts++;
       const pins  = document.querySelectorAll('.cru-ncf-pin');
       const cards = document.querySelectorAll('.cru-ncf-map-list-item');
+      console.log(`[DT Category Icons] Interval check - Pins: ${pins.length} Cards: ${cards.length}`);
       if (pins.length === 0 || cards.length === 0) return;
-      clearInterval(check);
 
-      const slugCatMap = buildSlugCategoryMap();
-      addIcons(slugCatMap);
+      // Map einmalig bauen wenn Pins da sind
+      if (Object.keys(slugCatMap).length === 0) {
+        slugCatMap = buildSlugCategoryMap();
+      }
 
-      // Observe body für nachgeladene Cards
-      new MutationObserver(() => addIcons(slugCatMap))
-        .observe(document.body, { childList: true, subtree: true });
-    }, 300);
+      addIcons();
+
+      if (attempts >= 20) clearInterval(check);
+    }, 500);
+
+    // MutationObserver hält Icons auch nach NCF Re-renders aktuell
+    new MutationObserver(() => {
+      if (Object.keys(slugCatMap).length === 0) return;
+      addIcons();
+    }).observe(document.body, { childList: true, subtree: true });
   }
 
   if (document.readyState === 'loading') {
