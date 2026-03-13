@@ -1,6 +1,6 @@
 /**
  * Drive This – Category Icons on Event Cards
- * Version: 1.2.0
+ * Version: 1.3.0
  */
 (function () {
   'use strict';
@@ -64,16 +64,17 @@
     document.head.appendChild(style);
 
     const check = setInterval(() => {
-      const pins = document.querySelectorAll('.cru-ncf-pin');
-      if (pins.length === 0) return;
+      const pins  = document.querySelectorAll('.cru-ncf-pin');
+      const cards = document.querySelectorAll('.cru-ncf-map-list-item');
+      if (pins.length === 0 || cards.length === 0) return;
       clearInterval(check);
+
       const slugCatMap = buildSlugCategoryMap();
       addIcons(slugCatMap);
 
-      const list = document.querySelector('.cru-ncf-map-list, .cru-ncf-map-items');
-      if (list) {
-        new MutationObserver(() => addIcons(slugCatMap)).observe(list, { childList: true, subtree: true });
-      }
+      // Observe body für nachgeladene Cards
+      new MutationObserver(() => addIcons(slugCatMap))
+        .observe(document.body, { childList: true, subtree: true });
     }, 300);
   }
 
