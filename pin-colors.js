@@ -56,7 +56,7 @@
     });
 
     // Favorite pins always on top
-    rules.push(`.mapboxgl-marker:has(.is-favorite-pin) { z-index: 9999 !important; }`);
+    rules.push(`.mapboxgl-marker:has(.is-favorite-pin) { z-index: 999 !important; }`);
 
     const style = document.createElement('style');
     style.id = 'dt-pin-colors';
