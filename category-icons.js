@@ -25,7 +25,7 @@
       justify-content: center;
       color: #000;
       pointer-events: none;
-      opacity: 0.6;
+      opacity: 1;
       z-index: 10;
     }
     .dt-category-icon svg { display: block; width: 18px; height: 18px; }
