@@ -5,7 +5,7 @@
  * - Injects inset box-shadow stripe on featured cards (no layout shift)
  * - Shows permanent label above featured pins at zoom >= ZOOM_THRESHOLD
  *
- * Version: 1.3.0
+ * Version: 1.4.0
  */
 (function () {
   'use strict';
@@ -65,6 +65,35 @@
   }
 
   /* ─── 1. Pin styles ─── */
+
+  function injectGlobalStyles(events) {
+    const existing = document.getElementById('dt-featured-global-styles');
+    if (existing) existing.remove();
+
+    // Build selectors for featured pin markers
+    const markerSelectors = events.map(({ slug }) =>
+      `.mapboxgl-marker:has(.${SLUG_CLASS_PREFIX}${slug})`
+    ).join(', ');
+
+    const rules = [
+      // Cursor: pointer on all pins
+      `.cru-ncf-pin { cursor: pointer !important; }`,
+      // Hide NCF's own tooltip popup for featured pins (it overlaps ours)
+      `${markerSelectors} ~ .mapboxgl-popup,
+       ${markerSelectors} .ncf-tooltip,
+       ${markerSelectors} [class*="tooltip"] { display: none !important; }`,
+      // Also suppress via NCF tooltip wrapper if it targets featured slugs
+      ...events.map(({ slug }) =>
+        `.ncf-tooltip-popup-inner-wrapper[data-slug="${slug}"],
+         .ncf-tooltip[data-slug="${slug}"] { display: none !important; }`
+      ),
+    ];
+
+    const style = document.createElement('style');
+    style.id = 'dt-featured-global-styles';
+    style.textContent = rules.join('\n');
+    document.head.appendChild(style);
+  }
 
   function injectPinStyles(events) {
     const existing = document.getElementById('dt-featured-pin-styles');
@@ -148,16 +177,6 @@
     ].join(';');
     label.textContent = name;
 
-    const arrow = document.createElement('div');
-    arrow.style.cssText = [
-      'position:absolute',
-      'top:100%',
-      'left:50%',
-      'transform:translateX(-50%)',
-      'border:5px solid transparent',
-      'border-top-color:rgba(15,15,15,0.92)',
-    ].join(';');
-    label.appendChild(arrow);
     wrap.appendChild(label);
     return wrap;
   }
@@ -223,12 +242,8 @@
     });
 
     // RAF loop: reposition on every frame (handles pan + zoom + resize)
-    let lastTs = 0;
-    function loop(ts) {
-      if (ts - lastTs > 80) { // ~12fps — enough for smooth pan tracking
-        positionTooltips();
-        lastTs = ts;
-      }
+    function loop() {
+      positionTooltips();
       requestAnimationFrame(loop);
     }
     requestAnimationFrame(loop);
@@ -240,6 +255,7 @@
 
   function init(events) {
     window._dtFeaturedEvents = events;
+    injectGlobalStyles(events);
     injectPinStyles(events);
     applyCardStripes();
 
