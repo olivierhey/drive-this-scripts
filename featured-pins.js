@@ -1,6 +1,6 @@
 /**
  * Drive This – Featured Event Pins & Tooltips
- * Version: 1.6.0
+ * Version: 1.6.1
  */
 (function () {
   'use strict';
@@ -218,6 +218,15 @@
 
     // Window resize
     window.addEventListener('resize', scheduleReposition);
+
+    // Map auto-center on pin click (fly-to animation)
+    // Schedule multiple repositions to cover the animation duration
+    mapEl.addEventListener('click', () => {
+      setTimeout(positionTooltips, 100);
+      setTimeout(positionTooltips, 300);
+      setTimeout(positionTooltips, 600);
+      setTimeout(positionTooltips, 1000);
+    });
 
     // Initial position after short delay (map needs to finish rendering)
     setTimeout(positionTooltips, 800);
