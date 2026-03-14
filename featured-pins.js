@@ -252,8 +252,8 @@
         buildTooltips(events);
         positionTooltips();
         setupZoomTracking();
-        // Keep re-positioning as map loads/pans
-        setInterval(positionTooltips, 500);
+        // Initial positioning pass after short delay
+        setTimeout(positionTooltips, 1000);
       } else if (attempts >= 40) {
         clearInterval(interval);
         console.warn('[DT Featured] Map or pins not found.');
