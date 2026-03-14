@@ -10,7 +10,7 @@
 (function () {
   'use strict';
 
-  const ZOOM_THRESHOLD = 7;
+  const ZOOM_THRESHOLD = 5;
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
   const STRIPE_COLOR = '#FFD700';
 
@@ -136,14 +136,14 @@
     const label = document.createElement('div');
     label.style.cssText = [
       'background:rgba(15,15,15,0.92)',
-      'border:1px solid rgba(255,255,255,0.14)',
+      'border:1px solid rgba(255,255,255,0.1)',
       'color:#fff',
       'font-size:11px',
       'font-weight:600',
       'font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif',
       'white-space:nowrap',
-      'padding:5px 9px',
-      'border-radius:5px',
+      'padding:5px 10px',
+      'border-radius:4px',
       'position:relative',
     ].join(';');
     label.textContent = name;
