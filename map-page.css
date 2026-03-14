@@ -3,10 +3,6 @@
  * CSS for chevron navigation with 2-second delay on page load
  */
 
-.cru-ncf-map-list-item[data-featured="1"] {
-  border-top: 3px solid #FFD700;
-}
-
 /* ==========================================================================
    SCROLL CHEVRON WRAPPER
    ========================================================================== */
