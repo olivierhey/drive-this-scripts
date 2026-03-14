@@ -95,9 +95,9 @@
       const slug = card.dataset.slug?.trim();
       const color = colorMap[slug] || extractColor(card);
       if (!color) return;
-      const stripe = `inset 0 4px 0 0 ${color}`;
+      const stripe = `inset 0 3px 0 0 ${color}`;
       const current = card.style.boxShadow || '';
-      if (!current.includes('inset 0 4px')) {
+      if (!current.includes('inset 0 3px')) {
         card.style.boxShadow = current ? `${current}, ${stripe}` : stripe;
       }
     });
