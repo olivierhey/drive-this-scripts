@@ -3,6 +3,10 @@
  * CSS for chevron navigation with 2-second delay on page load
  */
 
+.cru-ncf-pin {
+  cursor: pointer !important;
+}
+
 /* ==========================================================================
    SCROLL CHEVRON WRAPPER
    ========================================================================== */
