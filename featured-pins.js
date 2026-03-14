@@ -190,8 +190,7 @@
       }
       const pinRect = pin.getBoundingClientRect();
       if (pinRect.width === 0) {
-        tooltipEl.style.opacity = '0';
-        return;
+        return; // pin temporarily removed by Mapbox — don't touch opacity
       }
 
       // Position relative to map container
