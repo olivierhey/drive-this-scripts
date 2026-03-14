@@ -129,7 +129,7 @@
     tooltipMap = {};
     events.forEach(({ slug, name }) => {
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:absolute;transform:translate(-50%,-100%);pointer-events:none;padding-bottom:8px;opacity:0;';
+      wrap.style.cssText = 'position:absolute;transform:translate(-50%,-100%);pointer-events:none;padding-bottom:6px;opacity:0;';
       const label = document.createElement('div');
       label.style.cssText = [
         'background:rgba(15,15,15,0.92)',
