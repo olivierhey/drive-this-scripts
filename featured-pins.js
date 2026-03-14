@@ -10,7 +10,7 @@
 (function () {
   'use strict';
 
-  const ZOOM_THRESHOLD = 5;
+  const ZOOM_THRESHOLD = 6;
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
   const STRIPE_COLOR = '#FFD700';
 
