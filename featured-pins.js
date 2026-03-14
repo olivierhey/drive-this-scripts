@@ -28,21 +28,45 @@
 
   /* ─── Data collection ─── */
 
+  function extractColor(el) {
+    // Color sits on .bottom child (or inline background-color), not the list item itself
+    const selectors = ['.bottom', '[class*="bottom"]', '[class*="footer"]', '[class*="color"]'];
+    for (const sel of selectors) {
+      const child = el.querySelector(sel);
+      if (!child) continue;
+      const bg = getComputedStyle(child).backgroundColor;
+      const hex = rgbToHex(bg);
+      if (hex && hex !== '#ffffff' && hex !== '#000000') return hex;
+      // Also check inline style
+      if (child.style.backgroundColor) {
+        const hex2 = rgbToHex(getComputedStyle(child).backgroundColor);
+        if (hex2 && hex2 !== '#ffffff' && hex2 !== '#000000') return hex2;
+      }
+    }
+    // Fallback: scan all children with inline background
+    for (const child of el.querySelectorAll('[style*="background"]')) {
+      const bg = getComputedStyle(child).backgroundColor;
+      const hex = rgbToHex(bg);
+      if (hex && hex !== '#ffffff' && hex !== '#000000') return hex;
+    }
+    return null;
+  }
+
   function getFeaturedEvents() {
     const events = [];
     document.querySelectorAll('[data-featured="1"][data-slug]').forEach(el => {
       const slug = el.dataset.slug?.trim();
       if (!slug) return;
 
-      const hex = rgbToHex(getComputedStyle(el).backgroundColor);
-      if (!hex || hex === '#ffffff' || hex === '#000000') return;
+      const color = extractColor(el);
+      if (!color) return;
 
       events.push({
         slug,
-        color: hex,
-        name:  el.dataset.name  || el.querySelector('h3')?.textContent?.trim() || slug,
-        lat:   parseFloat(el.dataset.lat),
-        lng:   parseFloat(el.dataset.lng),
+        color,
+        name: el.dataset.name || el.querySelector('h3')?.textContent?.trim() || slug,
+        lat:  parseFloat(el.dataset.lat),
+        lng:  parseFloat(el.dataset.lng),
       });
     });
     return events;
