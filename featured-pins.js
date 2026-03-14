@@ -1,6 +1,6 @@
 /**
  * Drive This – Featured Event Pins & Tooltips
- * Version: 1.5.0
+ * Version: 1.6.0
  */
 (function () {
   'use strict';
@@ -12,6 +12,8 @@
   let currentZoom = 4;
   let tooltipLayer = null;
   let tooltipMap = {}; // slug -> wrapEl
+  let rafId = null;
+  let needsReposition = false;
 
   /* ─── Helpers ─── */
 
@@ -57,7 +59,18 @@
     return events;
   }
 
-  /* ─── 1. Pin styles ─── */
+  /* ─── 1. Global CSS ─── */
+
+  function injectGlobalCSS() {
+    const existing = document.getElementById('dt-featured-global-css');
+    if (existing) existing.remove();
+    const style = document.createElement('style');
+    style.id = 'dt-featured-global-css';
+    style.textContent = `.cru-ncf-pin { cursor: pointer !important; }`;
+    document.head.appendChild(style);
+  }
+
+  /* ─── 2. Pin styles ─── */
 
   function injectPinStyles(events) {
     const existing = document.getElementById('dt-featured-pin-styles');
@@ -74,7 +87,7 @@
     console.log(`[DT Featured] ${rules.length} pin style(s) injected.`);
   }
 
-  /* ─── 2. Card stripes ─── */
+  /* ─── 3. Card stripes ─── */
 
   function applyCardStripes() {
     document.querySelectorAll('[data-featured="1"]').forEach(card => {
@@ -84,26 +97,6 @@
         card.style.boxShadow = current ? `${current}, ${stripe}` : stripe;
       }
     });
-  }
-
-  /* ─── 3. NCF hover-tooltip suppression (for featured pins only) ─── */
-
-  function suppressNCFTooltips(slugs) {
-    // Watch for NCF tooltip popups and hide them if they belong to a featured pin
-    const observer = new MutationObserver(() => {
-      document.querySelectorAll('.ncf-tooltip, [class*="ncf-tooltip"], .mapboxgl-popup').forEach(popup => {
-        const text = popup.textContent?.trim();
-        // Check if popup text matches any featured event name
-        const isFeatured = slugs.some(slug => {
-          const pin = document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`);
-          const name = pin?.closest('[data-name]')?.dataset?.name ||
-                       document.querySelector(`[data-slug="${slug}"]`)?.dataset?.name || '';
-          return name && text && text.includes(name.substring(0, 10));
-        });
-        if (isFeatured) popup.style.display = 'none';
-      });
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   /* ─── 4. Tooltip layer ─── */
@@ -118,8 +111,7 @@
     if (tooltipLayer && document.contains(tooltipLayer)) return true;
     const mapEl = getMapContainer();
     if (!mapEl) return false;
-    const pos = getComputedStyle(mapEl).position;
-    if (pos === 'static') mapEl.style.position = 'relative';
+    if (getComputedStyle(mapEl).position === 'static') mapEl.style.position = 'relative';
     tooltipLayer = document.createElement('div');
     tooltipLayer.id = 'dt-featured-tooltip-layer';
     tooltipLayer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:9999;';
@@ -133,7 +125,7 @@
     tooltipMap = {};
     events.forEach(({ slug, name }) => {
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:absolute;transform:translate(-50%,-100%);pointer-events:none;margin-top:-10px;';
+      wrap.style.cssText = 'position:absolute;transform:translate(-50%,-100%);pointer-events:none;padding-bottom:12px;opacity:0;';
       const label = document.createElement('div');
       label.style.cssText = [
         'background:rgba(15,15,15,0.92)',
@@ -148,13 +140,12 @@
       ].join(';');
       label.textContent = name;
       wrap.appendChild(label);
-      wrap.style.opacity = '0';
       tooltipLayer.appendChild(wrap);
       tooltipMap[slug] = wrap;
     });
   }
 
-  /* ─── 5. Position + visibility ─── */
+  /* ─── 5. Position tooltips — called only on demand ─── */
 
   function positionTooltips() {
     if (!tooltipLayer) return;
@@ -165,7 +156,7 @@
 
     Object.entries(tooltipMap).forEach(([slug, wrap]) => {
       if (!show) {
-        if (wrap.style.opacity !== '0') wrap.style.opacity = '0';
+        wrap.style.opacity = '0';
         return;
       }
       const pin = document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`);
@@ -177,37 +168,60 @@
       const y = Math.round(pinRect.top - mapRect.top);
       const newLeft = `${x}px`;
       const newTop = `${y}px`;
-
-      // Only write to DOM if value actually changed (avoids triggering Mapbox hover)
       if (wrap.style.left !== newLeft) wrap.style.left = newLeft;
       if (wrap.style.top  !== newTop)  wrap.style.top  = newTop;
-      if (wrap.style.opacity !== '1')  wrap.style.opacity = '1';
+      wrap.style.opacity = '1';
     });
   }
 
-  /* ─── 6. Zoom tracking ─── */
+  /* ─── 6. Event-driven repositioning (no RAF loop polling) ─── */
 
-  function setupZoomTracking() {
+  function scheduleReposition() {
+    if (rafId) return; // already scheduled
+    rafId = requestAnimationFrame(() => {
+      rafId = null;
+      positionTooltips();
+    });
+  }
+
+  function setupEventListeners() {
     const mapEl = getMapContainer();
     if (!mapEl) return;
 
+    // Zoom via scroll wheel
     mapEl.addEventListener('wheel', e => {
       currentZoom = Math.max(1, Math.min(14, currentZoom - e.deltaY / 300));
+      scheduleReposition();
     }, { passive: true });
 
+    // Zoom via +/- buttons
     document.querySelectorAll('.mapboxgl-ctrl-zoom-in, .mapboxgl-ctrl-zoom-out').forEach(btn => {
       btn.addEventListener('click', () => {
         const isIn = btn.classList.contains('mapboxgl-ctrl-zoom-in');
         currentZoom = Math.max(1, Math.min(14, currentZoom + (isIn ? 1 : -1)));
+        scheduleReposition();
       });
     });
 
-    // RAF loop for smooth pan tracking — only writes to DOM when value changes
-    function loop() {
-      positionTooltips();
-      requestAnimationFrame(loop);
+    // Pan: listen to mousemove on canvas while button is held (drag)
+    let isPanning = false;
+    const canvas = mapEl.querySelector('.mapboxgl-canvas');
+    if (canvas) {
+      canvas.addEventListener('mousedown', () => { isPanning = true; });
+      window.addEventListener('mouseup', () => { isPanning = false; });
+      canvas.addEventListener('mousemove', () => {
+        if (isPanning) scheduleReposition();
+      });
+      // Touch pan
+      canvas.addEventListener('touchmove', scheduleReposition, { passive: true });
     }
-    requestAnimationFrame(loop);
+
+    // Window resize
+    window.addEventListener('resize', scheduleReposition);
+
+    // Initial position after short delay (map needs to finish rendering)
+    setTimeout(positionTooltips, 800);
+    setTimeout(positionTooltips, 1500);
 
     console.log(`[DT Featured] Ready. Zoom threshold: ${ZOOM_THRESHOLD}`);
   }
@@ -216,9 +230,9 @@
 
   function init(events) {
     window._dtFeaturedEvents = events;
+    injectGlobalCSS();
     injectPinStyles(events);
     applyCardStripes();
-    suppressNCFTooltips(events.map(e => e.slug));
 
     let attempts = 0;
     const interval = setInterval(() => {
@@ -228,7 +242,7 @@
       if (firstPin && mapEl) {
         clearInterval(interval);
         buildTooltips(events);
-        setupZoomTracking();
+        setupEventListeners();
       } else if (attempts >= 40) {
         clearInterval(interval);
         console.warn('[DT Featured] Map or pins not found.');
