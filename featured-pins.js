@@ -5,7 +5,7 @@
  * - Injects inset box-shadow stripe on featured cards (no layout shift)
  * - Shows permanent label above featured pins at zoom >= ZOOM_THRESHOLD
  *
- * Version: 1.2.0
+ * Version: 1.3.0
  */
 (function () {
   'use strict';
@@ -129,7 +129,7 @@
     wrap.style.cssText = [
       'position:absolute',
       'transform:translate(-50%, -100%)',
-      'margin-top:-8px',
+      'margin-top:0',
       'pointer-events:none',
     ].join(';');
 
@@ -209,23 +209,31 @@
     const mapEl = getMapContainer();
     if (!mapEl) return;
 
+    // Track zoom level via wheel
     mapEl.addEventListener('wheel', e => {
       currentZoom = Math.max(1, Math.min(14, currentZoom - e.deltaY / 300));
-      positionTooltips();
     }, { passive: true });
 
+    // Track zoom via +/- buttons
     document.querySelectorAll('.mapboxgl-ctrl-zoom-in, .mapboxgl-ctrl-zoom-out').forEach(btn => {
       btn.addEventListener('click', () => {
         const isIn = btn.classList.contains('mapboxgl-ctrl-zoom-in');
         currentZoom = Math.max(1, Math.min(14, currentZoom + (isIn ? 1 : -1)));
-        positionTooltips();
       });
     });
 
-    // Reposition on window resize
-    window.addEventListener('resize', positionTooltips);
+    // RAF loop: reposition on every frame (handles pan + zoom + resize)
+    let lastTs = 0;
+    function loop(ts) {
+      if (ts - lastTs > 80) { // ~12fps — enough for smooth pan tracking
+        positionTooltips();
+        lastTs = ts;
+      }
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
 
-    console.log(`[DT Featured] Zoom tracking active. Threshold: ${ZOOM_THRESHOLD}`);
+    console.log(`[DT Featured] RAF loop active. Threshold: ${ZOOM_THRESHOLD}`);
   }
 
   /* ─── Bootstrap ─── */
@@ -246,8 +254,7 @@
         buildTooltips(events);
         positionTooltips();
         setupZoomTracking();
-        // Initial positioning pass after short delay
-        setTimeout(positionTooltips, 1000);
+        
       } else if (attempts >= 40) {
         clearInterval(interval);
         console.warn('[DT Featured] Map or pins not found.');
