@@ -1,14 +1,12 @@
 /**
  * Drive This – Featured Event Pins & Tooltips
- * Version: 1.6.1
+ * Version: 1.6.2
  */
 (function () {
   'use strict';
 
   const ZOOM_THRESHOLD = 5;
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
-  const STRIPE_COLOR = '#FFD700';
-
   let currentZoom = 4;
   let tooltipLayer = null;
   let tooltipMap = {}; // slug -> wrapEl
@@ -89,11 +87,17 @@
 
   /* ─── 3. Card stripes ─── */
 
-  function applyCardStripes() {
-    document.querySelectorAll('[data-featured="1"]').forEach(card => {
-      const stripe = `inset 0 3px 0 0 ${STRIPE_COLOR}`;
+  function applyCardStripes(events) {
+    const colorMap = {};
+    events.forEach(({ slug, color }) => { colorMap[slug] = color; });
+
+    document.querySelectorAll('[data-featured="1"][data-slug]').forEach(card => {
+      const slug = card.dataset.slug?.trim();
+      const color = colorMap[slug] || extractColor(card);
+      if (!color) return;
+      const stripe = `inset 0 3px 0 0 ${color}`;
       const current = card.style.boxShadow || '';
-      if (!current.includes(stripe)) {
+      if (!current.includes('inset 0 3px')) {
         card.style.boxShadow = current ? `${current}, ${stripe}` : stripe;
       }
     });
@@ -241,7 +245,7 @@
     window._dtFeaturedEvents = events;
     injectGlobalCSS();
     injectPinStyles(events);
-    applyCardStripes();
+    applyCardStripes(events);
 
     let attempts = 0;
     const interval = setInterval(() => {
