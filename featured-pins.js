@@ -10,7 +10,7 @@
 (function () {
   'use strict';
 
-  const ZOOM_THRESHOLD = 6;
+  const ZOOM_THRESHOLD = 7;
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
   const STRIPE_COLOR = '#FFD700';
 
@@ -223,12 +223,7 @@
       });
     });
 
-    // Reposition on map pan/zoom re-render
-    new MutationObserver(() => {
-      requestAnimationFrame(positionTooltips);
-    }).observe(mapEl, { childList: true, subtree: true });
-
-    // Also reposition on window resize
+    // Reposition on window resize
     window.addEventListener('resize', positionTooltips);
 
     console.log(`[DT Featured] Zoom tracking active. Threshold: ${ZOOM_THRESHOLD}`);
