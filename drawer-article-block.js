@@ -9,7 +9,7 @@ function injectSlot(){
   const a=document.createElement('a');
   a.id='dt-drawer-article';
   a.href='#';
-  a.style.cssText='display:none;background:#161616;border-radius:8px;padding:14px 16px;margin-bottom:5px;align-items:flex-start;gap:10px;color:#fff;text-decoration:none;border-left:3px solid #4fd8ff';
+  a.style.cssText='display:none;background:#161616;border-radius:8px;padding:14px 16px;margin-bottom:5px;align-items:flex-start;gap:10px;color:#fff;text-decoration:none;box-shadow:inset 3px 0 0 #4fd8ff';
   a.addEventListener('click',function(e){e.stopPropagation()});
   a.innerHTML='<svg style="width:20px;height:20px;flex-shrink:0;margin-top:1px;opacity:.6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><div style="flex:1;display:flex;flex-direction:column;gap:4px"><span id="dt-drawer-article-type" style="font-size:.7rem;font-weight:400;opacity:.5;text-transform:uppercase;letter-spacing:.08em"></span><span id="dt-drawer-article-intro" style="font-size:.9rem;font-weight:300;line-height:1.4"></span><span style="font-size:.8rem;font-weight:300;opacity:.6;margin-top:2px">Read article ›</span></div>';
   desc.insertAdjacentElement('afterend',a);
@@ -22,7 +22,7 @@ function updateBlock(eventSlug,type,intro,articleSlug){
   lastRenderedSlug=eventSlug;
   if(!articleSlug){block.style.display='none';return;}
   const color=typeColors[type]||'#4fd8ff';
-  block.style.borderLeftColor=color;
+  block.style.boxShadow='inset 3px 0 0 '+color;
   block.href='/articles/'+articleSlug;
   const typeEl=document.getElementById('dt-drawer-article-type');
   const introEl=document.getElementById('dt-drawer-article-intro');
