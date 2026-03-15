@@ -32,7 +32,9 @@ function injectArticleBadges(){
 }
 
 function init(){
-  injectArticleBadges();
+  setTimeout(injectArticleBadges,300);
+  setTimeout(injectArticleBadges,800);
+  setTimeout(injectArticleBadges,1500);
   const lc=document.querySelector('.horizontal-scroll,.cru-ncf-map-list');
   if(lc){new MutationObserver(()=>setTimeout(injectArticleBadges,100)).observe(lc,{childList:true,subtree:true})}
 }
