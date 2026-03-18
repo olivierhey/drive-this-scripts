@@ -568,14 +568,13 @@
   /* ── Init ── */
   function boot() {
     // Resolve DOM refs now that the page HTML is ready
-    overlay     = document.getElementById('dt-drawer-overlay');
-    drawer      = document.getElementById('dt-drawer');
+    overlay = document.getElementById('dt-drawer-overlay');
+    drawer  = document.getElementById('dt-drawer');
+    if (!drawer) { setTimeout(boot, 200); return; }
     closeBtn    = document.getElementById('dt-drawer-close');
     favoriteBtn = document.getElementById('dt-drawer-favorite');
     handle      = drawer.querySelector('.dt-drawer-handle');
     header      = drawer.querySelector('.dt-drawer-header');
-
-    if (!drawer) { console.error('[DT] Drawer HTML not found'); return; }
 
     // Wire up UI listeners
     closeBtn.addEventListener('click', () => closeDrawer());
