@@ -13,8 +13,8 @@
     'autopia-madrid': '#e96565',
     'klassikwelt-bodensee': '#fabd61',
     'techno-classica-salon': '#fabd61',
-    'concorso-d-eleganza-villa-d-este': '#3adfba',
-    'fuoriconcorso': '#3adfba',
+    'concorso-deleganza-villa-deste': '#3adfba',
+    'fuori-concorso': '#3adfba',
   };
   function makePinDataUri(color) {
     const svg = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" fill="#2a2a3a" stroke="${color}" stroke-width="3"/></svg>`;
