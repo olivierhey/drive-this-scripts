@@ -37,12 +37,7 @@
   };
 
   /* ── DOM refs ── */
-  const overlay     = document.getElementById('dt-drawer-overlay');
-  const drawer      = document.getElementById('dt-drawer');
-  const closeBtn    = document.getElementById('dt-drawer-close');
-  const favoriteBtn = document.getElementById('dt-drawer-favorite');
-  const handle      = drawer.querySelector('.dt-drawer-handle');
-  const header      = drawer.querySelector('.dt-drawer-header');
+  let overlay, drawer, closeBtn, favoriteBtn, handle, header;
 
   /* ── State ── */
   let currentEventSlug = null;
@@ -462,23 +457,6 @@
     return null;
   }
 
-  /* ── Drawer UI event listeners ── */
-  closeBtn.addEventListener('click', () => closeDrawer());
-  overlay.addEventListener('click', () => closeDrawer());
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && drawer.classList.contains('is-active')) closeDrawer();
-  });
-
-  favoriteBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    if (!currentEventSlug) return;
-    const is = toggleFavorite(currentEventSlug);
-    updateFavoriteButton(is);
-    favoriteBtn.classList.remove('just-toggled');
-    void favoriteBtn.offsetWidth;
-    favoriteBtn.classList.add('just-toggled');
-  });
-
   /* ── Swipe to close (mobile) ── */
   function onTouchStart(e) {
     if (window.innerWidth >= 768) return;
@@ -496,13 +474,6 @@
     if (touchCurrentY - touchStartY > 100) closeDrawer(); else drawer.style.transform = '';
     touchStartY = 0; touchCurrentY = 0;
   }
-  handle.addEventListener('touchstart', onTouchStart, {passive:true});
-  handle.addEventListener('touchmove',  onTouchMove,  {passive:true});
-  handle.addEventListener('touchend',   onTouchEnd);
-  header.addEventListener('touchstart', onTouchStart, {passive:true});
-  header.addEventListener('touchmove',  onTouchMove,  {passive:true});
-  header.addEventListener('touchend',   onTouchEnd);
-
   /* ── List item click → drawer ── */
   document.addEventListener('click', e => {
     if (e.target.closest('[class*="chevron"],[class*="scroll-btn"],[class*="arrow"],.ncf-scroll-btn,.cru-scroll-btn,button[class*="scroll"],button[class*="nav"]')) {
@@ -594,32 +565,66 @@
     else closeDrawer(false);
   });
 
-  /* ── lastClosedEventName guard (prevents instant re-open after close) ── */
-  const _origClose = closeDrawer;
-  closeDrawer = function(updateUrl = true) {
-    const titleEl = document.getElementById('dt-drawer-title');
-    lastClosedEventName = titleEl ? titleEl.textContent : '';
-    _origClose(updateUrl);
-    setTimeout(() => { lastClosedEventName = ''; }, 1500);
-  };
-
-  /* ── Public API ── */
-  window.DriveThisDrawer = {
-    open:   openDrawer,
-    close:  closeDrawer,
-    isOpen: () => drawer.classList.contains('is-active'),
-    favorites: {
-      list:   () => JSON.parse(localStorage.getItem('dt_favorites') || '[]'),
-      has:    isFavorited,
-      toggle: toggleFavorite,
-      clear:  () => localStorage.removeItem('dt_favorites')
-    }
-  };
-
   /* ── Init ── */
   function boot() {
-    setTimeout(setupPinObserver,      500);
-    setTimeout(setupPanDetection,     500);
+    // Resolve DOM refs now that the page HTML is ready
+    overlay     = document.getElementById('dt-drawer-overlay');
+    drawer      = document.getElementById('dt-drawer');
+    closeBtn    = document.getElementById('dt-drawer-close');
+    favoriteBtn = document.getElementById('dt-drawer-favorite');
+    handle      = drawer.querySelector('.dt-drawer-handle');
+    header      = drawer.querySelector('.dt-drawer-header');
+
+    if (!drawer) { console.error('[DT] Drawer HTML not found'); return; }
+
+    // Wire up UI listeners
+    closeBtn.addEventListener('click', () => closeDrawer());
+    overlay.addEventListener('click', () => closeDrawer());
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && drawer.classList.contains('is-active')) closeDrawer();
+    });
+    favoriteBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!currentEventSlug) return;
+      const is = toggleFavorite(currentEventSlug);
+      updateFavoriteButton(is);
+      favoriteBtn.classList.remove('just-toggled');
+      void favoriteBtn.offsetWidth;
+      favoriteBtn.classList.add('just-toggled');
+    });
+
+    // Swipe to close
+    handle.addEventListener('touchstart', onTouchStart, {passive:true});
+    handle.addEventListener('touchmove',  onTouchMove,  {passive:true});
+    handle.addEventListener('touchend',   onTouchEnd);
+    header.addEventListener('touchstart', onTouchStart, {passive:true});
+    header.addEventListener('touchmove',  onTouchMove,  {passive:true});
+    header.addEventListener('touchend',   onTouchEnd);
+
+    // Override closeDrawer with lastClosedEventName guard
+    const _origClose = closeDrawer;
+    closeDrawer = function(updateUrl = true) {
+      const titleEl = document.getElementById('dt-drawer-title');
+      lastClosedEventName = titleEl ? titleEl.textContent : '';
+      _origClose(updateUrl);
+      setTimeout(() => { lastClosedEventName = ''; }, 1500);
+    };
+
+    // Public API
+    window.DriveThisDrawer = {
+      open:   openDrawer,
+      close:  closeDrawer,
+      isOpen: () => drawer.classList.contains('is-active'),
+      favorites: {
+        list:   () => JSON.parse(localStorage.getItem('dt_favorites') || '[]'),
+        has:    isFavorited,
+        toggle: toggleFavorite,
+        clear:  () => localStorage.removeItem('dt_favorites')
+      }
+    };
+
+    setTimeout(setupPinObserver,        500);
+    setTimeout(setupPanDetection,       500);
     setTimeout(setupListHeartsObserver, 500);
     openDrawerFromUrl();
   }
