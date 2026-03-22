@@ -1,13 +1,12 @@
 /**
  * Drive This – Map Inline Logic
- * Version: 9.6
+ * Version: 9.7
  *
- * Changes from 9.5:
- *  - Drawer trigger: MutationObserver on pin .active class
- *    (replaces fragile click+setTimeout+tooltip-polling)
- *  - Removed _b touch-block (was causing double open/close)
- *  - Extracted slugify() as shared helper
- *  - setupTooltipObserver / checkTooltipAndOpenDrawer removed
+ * Changes from 9.6:
+ *  - Added partnerTier field to getEventData()
+ *  - Added Featured / Headline Partner badge to populateDrawer()
+ *  - Badge renders in drawer image header (bottom-right)
+ *  - Headline = gold fill, Featured = dark with gold border
  */
 (function () {
 
@@ -361,6 +360,21 @@
     document.getElementById('dt-drawer-description').textContent = data.info || '';
     document.getElementById('dt-drawer-offer').style.display = 'none';
 
+    /* ── v9.7: Featured / Headline Partner badge ── */
+    const featuredBadge = document.getElementById('dt-drawer-featured-badge');
+    if (featuredBadge) {
+      const tier = data.partnerTier;
+      if (tier === 'Headline') {
+        featuredBadge.textContent = '\u2605 Headline Partner';
+        featuredBadge.style.cssText = 'display:inline-block;background:#C9A84C;color:#0D0D0D;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;padding:5px 10px;border-radius:4px;';
+      } else if (tier === 'Featured') {
+        featuredBadge.textContent = '\u2605 Featured Partner';
+        featuredBadge.style.cssText = 'display:inline-block;background:#1a1a1a;color:#C9A84C;border:1px solid #C9A84C;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;padding:5px 10px;border-radius:4px;';
+      } else {
+        featuredBadge.style.display = 'none';
+      }
+    }
+
     const pastBadge = document.getElementById('dt-drawer-past-badge');
     const dateEl    = document.getElementById('dt-drawer-date');
     const checkDate = data.end || data.start;
@@ -421,6 +435,7 @@
       price:        el.dataset.price || '',
       specialOffer: el.dataset.specialOffer === '1',
       offerText:    el.dataset.offerText || '',
+      partnerTier:  el.dataset.partnerTier || '',   // ← v9.7: 'Community' | 'Featured' | 'Headline'
       logo:'', flag:'', heroImage:'', color:''
     };
     if (!d.slug && d.name) d.slug = slugify(d.name);
@@ -474,6 +489,7 @@
     if (touchCurrentY - touchStartY > 100) closeDrawer(); else drawer.style.transform = '';
     touchStartY = 0; touchCurrentY = 0;
   }
+
   /* ── List item click → drawer ── */
   document.addEventListener('click', e => {
     if (e.target.closest('[class*="chevron"],[class*="scroll-btn"],[class*="arrow"],.ncf-scroll-btn,.cru-scroll-btn,button[class*="scroll"],button[class*="nav"]')) {
@@ -499,14 +515,7 @@
     });
   }
 
-  /* ── NEW: Pin click via MutationObserver ──────────────────────────────────
-   *
-   * NCF adds .active to the clicked .cru-ncf-pin element.
-   * This only happens on a real click/tap — never on hover alone.
-   * We observe that class mutation instead of polling tooltips with timeouts.
-   * Result: instant, reliable, no race conditions, no blink.
-   *
-   * ─────────────────────────────────────────────────────────────────────── */
+  /* ── Pin click via MutationObserver ── */
   function setupPinObserver() {
     const mapEl = document.querySelector('.ncf-map-wrapper, .cru-ncf-map, [class*="ncf-map"]');
     if (!mapEl) { setTimeout(setupPinObserver, 500); return; }
@@ -514,27 +523,19 @@
     new MutationObserver(mutations => {
       for (const m of mutations) {
         const el = m.target;
-        // Only care about pins gaining .active (not losing it)
         if (!el.classList?.contains('cru-ncf-pin')) continue;
         if (!el.classList.contains('active')) continue;
-        if (m.oldValue && m.oldValue.split(' ').includes('active')) continue; // was already active
-
-        // Ignore if this was a pan gesture
+        if (m.oldValue && m.oldValue.split(' ').includes('active')) continue;
         if (mapPointerMoved) { mapPointerMoved = false; continue; }
-
-        // Resolve event from pin slug class
         const slugClass = [...el.classList].find(c => c.startsWith('ncf-slug-'));
         if (!slugClass) continue;
         const slug = slugClass.replace('ncf-slug-', '');
-
-        // Don't reopen the same event
         if (slug === currentEventSlug) continue;
-
         const li = findEventBySlug(slug);
         if (!li) continue;
         const d = getEventData(li);
         if (d.slug || d.name) openDrawer(d);
-        break; // one drawer open per mutation batch
+        break;
       }
     }).observe(mapEl, {
       attributes: true,
@@ -546,7 +547,7 @@
     console.log('[DT] Pin observer active');
   }
 
-  /* ── URL state: open drawer from ?event= param ── */
+  /* ── URL state ── */
   function openDrawerFromUrl() {
     const slug = new URLSearchParams(window.location.search).get('event');
     if (!slug) return;
@@ -567,7 +568,6 @@
 
   /* ── Init ── */
   function boot() {
-    // Resolve DOM refs now that the page HTML is ready
     overlay = document.getElementById('dt-drawer-overlay');
     drawer  = document.getElementById('dt-drawer');
     if (!drawer) { setTimeout(boot, 200); return; }
@@ -576,7 +576,6 @@
     handle      = drawer.querySelector('.dt-drawer-handle');
     header      = drawer.querySelector('.dt-drawer-header');
 
-    // Wire up UI listeners
     closeBtn.addEventListener('click', () => closeDrawer());
     overlay.addEventListener('click', () => closeDrawer());
     document.addEventListener('keydown', e => {
@@ -592,7 +591,6 @@
       favoriteBtn.classList.add('just-toggled');
     });
 
-    // Swipe to close
     handle.addEventListener('touchstart', onTouchStart, {passive:true});
     handle.addEventListener('touchmove',  onTouchMove,  {passive:true});
     handle.addEventListener('touchend',   onTouchEnd);
@@ -600,7 +598,6 @@
     header.addEventListener('touchmove',  onTouchMove,  {passive:true});
     header.addEventListener('touchend',   onTouchEnd);
 
-    // Override closeDrawer with lastClosedEventName guard
     const _origClose = closeDrawer;
     closeDrawer = function(updateUrl = true) {
       const titleEl = document.getElementById('dt-drawer-title');
@@ -609,7 +606,6 @@
       setTimeout(() => { lastClosedEventName = ''; }, 1500);
     };
 
-    // Public API
     window.DriveThisDrawer = {
       open:   openDrawer,
       close:  closeDrawer,
@@ -631,6 +627,6 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 
-  console.log('DT v9.6');
+  console.log('DT v9.7');
 
 })();
