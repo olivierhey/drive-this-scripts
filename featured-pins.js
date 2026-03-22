@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const ZOOM_THRESHOLD = 6;
+  const ZOOM_THRESHOLD = 5;
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
   let currentZoom = 4;
   let tooltipLayer = null;
