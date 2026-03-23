@@ -1,6 +1,13 @@
 /**
  * Drive This – Featured Event Pins & Tooltips
- * Version: 1.6.2
+ * Version: 1.7.0
+ *
+ * Changes from 1.6.2:
+ *  - Drawer awareness: tooltips hidden immediately when drawer opens,
+ *    restored (with short delay) when drawer closes.
+ *  - positionTooltips() now skips silently if drawer is open.
+ *  - Click-reposition calls respect drawer state.
+ *  - setupDrawerAwareness() wired into init().
  */
 (function () {
   'use strict';
@@ -11,7 +18,6 @@
   let tooltipLayer = null;
   let tooltipMap = {}; // slug -> wrapEl
   let rafId = null;
-  let needsReposition = false;
 
   /* ─── Helpers ─── */
 
@@ -55,6 +61,13 @@
       });
     });
     return events;
+  }
+
+  /* ─── Drawer state helper ─── */
+
+  function isDrawerOpen() {
+    const drawerEl = document.getElementById('dt-drawer');
+    return drawerEl ? drawerEl.classList.contains('is-active') : false;
   }
 
   /* ─── 1. Global CSS ─── */
@@ -149,10 +162,14 @@
     });
   }
 
-  /* ─── 5. Position tooltips — called only on demand ─── */
+  /* ─── 5. Position tooltips ─── */
 
   function positionTooltips() {
     if (!tooltipLayer) return;
+
+    // Don't touch tooltips while the drawer is open — avoids blink on mobile
+    if (isDrawerOpen()) return;
+
     const mapEl = getMapContainer();
     if (!mapEl) return;
     const mapRect = mapEl.getBoundingClientRect();
@@ -171,22 +188,57 @@
       const x = Math.round(pinRect.left - mapRect.left + pinRect.width / 2);
       const y = Math.round(pinRect.top - mapRect.top);
       const newLeft = `${x}px`;
-      const newTop = `${y}px`;
+      const newTop  = `${y}px`;
       if (wrap.style.left !== newLeft) wrap.style.left = newLeft;
       if (wrap.style.top  !== newTop)  wrap.style.top  = newTop;
       wrap.style.opacity = '1';
     });
   }
 
-  /* ─── 6. Event-driven repositioning (no RAF loop polling) ─── */
+  /* ─── 6. Scheduled reposition (RAF-debounced) ─── */
 
   function scheduleReposition() {
-    if (rafId) return; // already scheduled
+    if (rafId) return;
     rafId = requestAnimationFrame(() => {
       rafId = null;
       positionTooltips();
     });
   }
+
+  /* ─── 7. Drawer awareness ────────────────────────────────────────────────
+   *
+   * Observes the drawer's class list.
+   * - When drawer opens (.is-active added): hide all tooltips immediately.
+   * - When drawer closes (.is-active removed): wait briefly, then reposition.
+   *
+   * This is the core fix for the blink: tooltips are killed the moment the
+   * drawer starts opening, so there is nothing left to flicker.
+   *
+   * ─────────────────────────────────────────────────────────────────────── */
+  function setupDrawerAwareness() {
+    const drawerEl = document.getElementById('dt-drawer');
+    if (!drawerEl) {
+      // Drawer HTML may not exist yet — retry
+      setTimeout(setupDrawerAwareness, 500);
+      return;
+    }
+
+    new MutationObserver(() => {
+      if (drawerEl.classList.contains('is-active')) {
+        // Drawer just opened → immediately hide tooltips
+        Object.values(tooltipMap).forEach(wrap => {
+          wrap.style.opacity = '0';
+        });
+      } else {
+        // Drawer just closed → restore after transition finishes (~350ms)
+        setTimeout(positionTooltips, 400);
+      }
+    }).observe(drawerEl, { attributes: true, attributeFilter: ['class'] });
+
+    console.log('[DT Featured] Drawer awareness active.');
+  }
+
+  /* ─── 8. Event listeners ─── */
 
   function setupEventListeners() {
     const mapEl = getMapContainer();
@@ -207,7 +259,7 @@
       });
     });
 
-    // Pan: listen to mousemove on canvas while button is held (drag)
+    // Pan
     let isPanning = false;
     const canvas = mapEl.querySelector('.mapboxgl-canvas');
     if (canvas) {
@@ -216,23 +268,21 @@
       canvas.addEventListener('mousemove', () => {
         if (isPanning) scheduleReposition();
       });
-      // Touch pan
       canvas.addEventListener('touchmove', scheduleReposition, { passive: true });
     }
 
     // Window resize
     window.addEventListener('resize', scheduleReposition);
 
-    // Map auto-center on pin click (fly-to animation)
-    // Schedule multiple repositions to cover the animation duration
+    // Pin click → map fly-to animation → reposition during animation.
+    // Each call checks isDrawerOpen() and bails out if open.
     mapEl.addEventListener('click', () => {
-      setTimeout(positionTooltips, 100);
-      setTimeout(positionTooltips, 300);
-      setTimeout(positionTooltips, 600);
-      setTimeout(positionTooltips, 1000);
+      [100, 300, 600, 1000].forEach(delay => {
+        setTimeout(positionTooltips, delay);
+      });
     });
 
-    // Initial position after short delay (map needs to finish rendering)
+    // Initial positioning
     setTimeout(positionTooltips, 800);
     setTimeout(positionTooltips, 1500);
 
@@ -256,6 +306,7 @@
         clearInterval(interval);
         buildTooltips(events);
         setupEventListeners();
+        setupDrawerAwareness(); // ← new
       } else if (attempts >= 40) {
         clearInterval(interval);
         console.warn('[DT Featured] Map or pins not found.');
