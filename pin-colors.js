@@ -17,6 +17,7 @@
     'fuori-concorso': '#3adfba',
     'swiss-classic-world': '#f08484',
     'goodwood-festival-of-speed': '#B579F3',
+    'sherborne-classic-supercars-show': '#B579F3',
     'belmot-oldtimer-grand-prix': '#ADE0FC',
   };
   function makePinDataUri(color) {
