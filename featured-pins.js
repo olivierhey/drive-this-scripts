@@ -1,23 +1,18 @@
 /**
- * Drive This – Featured Event Pins & Tooltips
- * Version: 1.7.0
+ * Drive This – Featured Event Pins
+ * Version: 2.0.0
  *
- * Changes from 1.6.2:
- *  - Drawer awareness: tooltips hidden immediately when drawer opens,
- *    restored (with short delay) when drawer closes.
- *  - positionTooltips() now skips silently if drawer is open.
- *  - Click-reposition calls respect drawer state.
- *  - setupDrawerAwareness() wired into init().
+ * Changes from 1.7.0:
+ *  - Persistent tooltip layer removed entirely (no more DOM blink/jump issues)
+ *  - Featured pins now use CSS glow-pulse animation instead
+ *  - Drawer awareness logic removed (no longer needed)
+ *  - Pan/zoom/resize listeners removed (no longer needed)
+ *  - Code footprint reduced ~60%
  */
 (function () {
   'use strict';
 
-  const ZOOM_THRESHOLD = 5;
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
-  let currentZoom = 4;
-  let tooltipLayer = null;
-  let tooltipMap = {}; // slug -> wrapEl
-  let rafId = null;
 
   /* ─── Helpers ─── */
 
@@ -63,13 +58,6 @@
     return events;
   }
 
-  /* ─── Drawer state helper ─── */
-
-  function isDrawerOpen() {
-    const drawerEl = document.getElementById('dt-drawer');
-    return drawerEl ? drawerEl.classList.contains('is-active') : false;
-  }
-
   /* ─── 1. Global CSS ─── */
 
   function injectGlobalCSS() {
@@ -77,19 +65,49 @@
     if (existing) existing.remove();
     const style = document.createElement('style');
     style.id = 'dt-featured-global-css';
-    style.textContent = `.cru-ncf-pin { cursor: pointer !important; }`;
+    style.textContent = `
+      .cru-ncf-pin { cursor: pointer !important; }
+
+      @keyframes dt-glow {
+        0%   { box-shadow: 0 0 0 0px var(--pin-color-a),
+                           0 2px  8px var(--pin-color-b); }
+        50%  { box-shadow: 0 0 0 9px transparent,
+                           0 2px 16px var(--pin-color-c); }
+        100% { box-shadow: 0 0 0 0px transparent,
+                           0 2px  8px var(--pin-color-b); }
+      }
+    `;
     document.head.appendChild(style);
   }
 
-  /* ─── 2. Pin styles ─── */
+  /* ─── 2. Pin styles + glow animation ─── */
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `${r},${g},${b}`;
+  }
 
   function injectPinStyles(events) {
     const existing = document.getElementById('dt-featured-pin-styles');
     if (existing) existing.remove();
+
     const rules = events.map(({ slug, color }) => {
       const uri = makeFeaturedPinUri(color);
-      return `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) { background-image: ${uri} !important; }`;
+      const rgb = hexToRgb(color);
+      return `
+        .${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) {
+          background-image: ${uri} !important;
+          --pin-color-a: rgba(${rgb}, 0.65);
+          --pin-color-b: rgba(${rgb}, 0.40);
+          --pin-color-c: rgba(${rgb}, 0.60);
+          animation: dt-glow 2s ease-in-out infinite !important;
+          border-radius: 50% !important;
+        }
+      `;
     });
+
     if (!rules.length) return;
     const style = document.createElement('style');
     style.id = 'dt-featured-pin-styles';
@@ -105,188 +123,15 @@
     events.forEach(({ slug, color }) => { colorMap[slug] = color; });
 
     document.querySelectorAll('[data-featured="1"][data-slug]').forEach(card => {
-      const slug = card.dataset.slug?.trim();
+      const slug  = card.dataset.slug?.trim();
       const color = colorMap[slug] || extractColor(card);
       if (!color) return;
-      const stripe = `inset 0 5px 0 0 ${color}`;
+      const stripe  = `inset 0 5px 0 0 ${color}`;
       const current = card.style.boxShadow || '';
       if (!current.includes('inset 0 5px')) {
         card.style.boxShadow = current ? `${current}, ${stripe}` : stripe;
       }
     });
-  }
-
-  /* ─── 4. Tooltip layer ─── */
-
-  function getMapContainer() {
-    return document.querySelector('.mapboxgl-map') ||
-           document.querySelector('.ncf-map-wrapper') ||
-           document.querySelector('[class*="ncf-map"]');
-  }
-
-  function ensureTooltipLayer() {
-    if (tooltipLayer && document.contains(tooltipLayer)) return true;
-    const mapEl = getMapContainer();
-    if (!mapEl) return false;
-    if (getComputedStyle(mapEl).position === 'static') mapEl.style.position = 'relative';
-    tooltipLayer = document.createElement('div');
-    tooltipLayer.id = 'dt-featured-tooltip-layer';
-    tooltipLayer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:9999;';
-    mapEl.appendChild(tooltipLayer);
-    return true;
-  }
-
-  function buildTooltips(events) {
-    if (!ensureTooltipLayer()) return;
-    tooltipLayer.innerHTML = '';
-    tooltipMap = {};
-    events.forEach(({ slug, name }) => {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:absolute;transform:translate(-50%,-100%);pointer-events:none;padding-bottom:6px;opacity:0;';
-      const label = document.createElement('div');
-      label.style.cssText = [
-        'background:rgba(15,15,15,0.92)',
-        'border:1px solid rgba(255,255,255,0.14)',
-        'color:#fff',
-        'font-size:11px',
-        'font-weight:600',
-        'font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif',
-        'white-space:nowrap',
-        'padding:5px 9px',
-        'border-radius:5px',
-      ].join(';');
-      label.textContent = name;
-      wrap.appendChild(label);
-      tooltipLayer.appendChild(wrap);
-      tooltipMap[slug] = wrap;
-    });
-  }
-
-  /* ─── 5. Position tooltips ─── */
-
-  function positionTooltips() {
-    if (!tooltipLayer) return;
-
-    // Don't touch tooltips while the drawer is open — avoids blink on mobile
-    if (isDrawerOpen()) return;
-
-    const mapEl = getMapContainer();
-    if (!mapEl) return;
-    const mapRect = mapEl.getBoundingClientRect();
-    const show = currentZoom >= ZOOM_THRESHOLD;
-
-    Object.entries(tooltipMap).forEach(([slug, wrap]) => {
-      if (!show) {
-        wrap.style.opacity = '0';
-        return;
-      }
-      const pin = document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`);
-      if (!pin) return;
-      const pinRect = pin.getBoundingClientRect();
-      if (pinRect.width === 0) return;
-
-      const x = Math.round(pinRect.left - mapRect.left + pinRect.width / 2);
-      const y = Math.round(pinRect.top - mapRect.top);
-      const newLeft = `${x}px`;
-      const newTop  = `${y}px`;
-      if (wrap.style.left !== newLeft) wrap.style.left = newLeft;
-      if (wrap.style.top  !== newTop)  wrap.style.top  = newTop;
-      wrap.style.opacity = '1';
-    });
-  }
-
-  /* ─── 6. Scheduled reposition (RAF-debounced) ─── */
-
-  function scheduleReposition() {
-    if (rafId) return;
-    rafId = requestAnimationFrame(() => {
-      rafId = null;
-      positionTooltips();
-    });
-  }
-
-  /* ─── 7. Drawer awareness ────────────────────────────────────────────────
-   *
-   * Observes the drawer's class list.
-   * - When drawer opens (.is-active added): hide all tooltips immediately.
-   * - When drawer closes (.is-active removed): wait briefly, then reposition.
-   *
-   * This is the core fix for the blink: tooltips are killed the moment the
-   * drawer starts opening, so there is nothing left to flicker.
-   *
-   * ─────────────────────────────────────────────────────────────────────── */
-  function setupDrawerAwareness() {
-    const drawerEl = document.getElementById('dt-drawer');
-    if (!drawerEl) {
-      // Drawer HTML may not exist yet — retry
-      setTimeout(setupDrawerAwareness, 500);
-      return;
-    }
-
-    new MutationObserver(() => {
-      if (drawerEl.classList.contains('is-active')) {
-        // Drawer just opened → immediately hide tooltips
-        Object.values(tooltipMap).forEach(wrap => {
-          wrap.style.opacity = '0';
-        });
-      } else {
-        // Drawer just closed → restore after transition finishes (~350ms)
-        setTimeout(positionTooltips, 400);
-      }
-    }).observe(drawerEl, { attributes: true, attributeFilter: ['class'] });
-
-    console.log('[DT Featured] Drawer awareness active.');
-  }
-
-  /* ─── 8. Event listeners ─── */
-
-  function setupEventListeners() {
-    const mapEl = getMapContainer();
-    if (!mapEl) return;
-
-    // Zoom via scroll wheel
-    mapEl.addEventListener('wheel', e => {
-      currentZoom = Math.max(1, Math.min(14, currentZoom - e.deltaY / 300));
-      scheduleReposition();
-    }, { passive: true });
-
-    // Zoom via +/- buttons
-    document.querySelectorAll('.mapboxgl-ctrl-zoom-in, .mapboxgl-ctrl-zoom-out').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const isIn = btn.classList.contains('mapboxgl-ctrl-zoom-in');
-        currentZoom = Math.max(1, Math.min(14, currentZoom + (isIn ? 1 : -1)));
-        scheduleReposition();
-      });
-    });
-
-    // Pan
-    let isPanning = false;
-    const canvas = mapEl.querySelector('.mapboxgl-canvas');
-    if (canvas) {
-      canvas.addEventListener('mousedown', () => { isPanning = true; });
-      window.addEventListener('mouseup', () => { isPanning = false; });
-      canvas.addEventListener('mousemove', () => {
-        if (isPanning) scheduleReposition();
-      });
-      canvas.addEventListener('touchmove', scheduleReposition, { passive: true });
-    }
-
-    // Window resize
-    window.addEventListener('resize', scheduleReposition);
-
-    // Pin click → map fly-to animation → reposition during animation.
-    // Each call checks isDrawerOpen() and bails out if open.
-    mapEl.addEventListener('click', () => {
-      [100, 300, 600, 1000].forEach(delay => {
-        setTimeout(positionTooltips, delay);
-      });
-    });
-
-    // Initial positioning
-    setTimeout(positionTooltips, 800);
-    setTimeout(positionTooltips, 1500);
-
-    console.log(`[DT Featured] Ready. Zoom threshold: ${ZOOM_THRESHOLD}`);
   }
 
   /* ─── Bootstrap ─── */
@@ -301,15 +146,12 @@
     const interval = setInterval(() => {
       attempts++;
       const firstPin = document.querySelector(`.${SLUG_CLASS_PREFIX}${events[0].slug}`);
-      const mapEl = getMapContainer();
-      if (firstPin && mapEl) {
+      if (firstPin) {
         clearInterval(interval);
-        buildTooltips(events);
-        setupEventListeners();
-        setupDrawerAwareness(); // ← new
+        console.log(`[DT Featured] Pins ready. Glow active on ${events.length} event(s).`);
       } else if (attempts >= 40) {
         clearInterval(interval);
-        console.warn('[DT Featured] Map or pins not found.');
+        console.warn('[DT Featured] Pins not found in DOM after 20s.');
       }
     }, 500);
   }
