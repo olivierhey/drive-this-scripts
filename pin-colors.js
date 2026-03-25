@@ -11,15 +11,15 @@
   const FALLBACK_COLOR = '#D45D3F';
   const COLOR_OVERRIDES = {
     'autopia-madrid': '#e96565',
-    'klassikwelt-bodensee': '#fabd61',
-    'techno-classica-salon': '#fabd61',
+    'klassikwelt-bodensee': '#FABD61',
+    'techno-classica-salon': '#FABD61',
     'concorso-deleganza-villa-deste': '#3adfba',
     'fuori-concorso': '#3adfba',
     'swiss-classic-world': '#f08484',
     'goodwood-festival-of-speed': '#B579F3',
     'sherborne-classic-supercars-show': '#B579F3',
     'belmot-oldtimer-grand-prix': '#ADE0FC',
-    'classic-days-grand-meeting': '#fabd61',
+    'classic-days-grand-meeting': '#FABD61',
   };
   function makePinDataUri(color) {
     const svg = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" fill="#2a2a3a" stroke="${color}" stroke-width="3"/></svg>`;
