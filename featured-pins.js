@@ -1,13 +1,11 @@
 /**
  * Drive This – Featured Event Pins
- * Version: 2.0.0
+ * Version: 2.0.1
  *
- * Changes from 1.7.0:
- *  - Persistent tooltip layer removed entirely (no more DOM blink/jump issues)
- *  - Featured pins now use CSS glow-pulse animation instead
- *  - Drawer awareness logic removed (no longer needed)
- *  - Pan/zoom/resize listeners removed (no longer needed)
- *  - Code footprint reduced ~60%
+ * Fixes vs 2.0.0:
+ *  - @keyframes: transparent → rgba(r,g,b,0) — prevents color-flicker in Safari
+ *  - hexToRgb(): added validation guard, returns null on malformed input
+ *  - getFeaturedEvents(): deduplicate by slug
  */
 (function () {
   'use strict';
@@ -27,6 +25,15 @@
     return '#' + [m[1], m[2], m[3]].map(n => parseInt(n).toString(16).padStart(2, '0')).join('');
   }
 
+  // FIX Bug 2: validate input is a full 7-char hex before parsing
+  function hexToRgb(hex) {
+    if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `${r},${g},${b}`;
+  }
+
   function extractColor(el) {
     const selectors = ['.bottom', '[class*="bottom"]', '[class*="footer"]', '[class*="color"]'];
     for (const sel of selectors) {
@@ -43,12 +50,14 @@
   }
 
   function getFeaturedEvents() {
+    const seen = new Set(); // FIX Bug 3: deduplicate by slug
     const events = [];
     document.querySelectorAll('[data-featured="1"][data-slug]').forEach(el => {
       const slug = el.dataset.slug?.trim();
-      if (!slug) return;
+      if (!slug || seen.has(slug)) return;
       const color = extractColor(el);
       if (!color) return;
+      seen.add(slug);
       events.push({
         slug,
         color,
@@ -60,6 +69,10 @@
 
   /* ─── 1. Global CSS ─── */
 
+  // NOTE: @keyframes uses CSS custom properties which resolve per-element.
+  // We do NOT use 'transparent' here — instead we use --pin-color-zero (rgba at 0 alpha)
+  // to ensure smooth interpolation in Safari. (FIX Bug 1)
+
   function injectGlobalCSS() {
     const existing = document.getElementById('dt-featured-global-css');
     if (existing) existing.remove();
@@ -69,11 +82,11 @@
       .cru-ncf-pin { cursor: pointer !important; }
 
       @keyframes dt-glow {
-        0%   { box-shadow: 0 0 0 0px var(--pin-color-a),
+        0%   { box-shadow: 0 0 0 0px  var(--pin-color-a),
                            0 2px  8px var(--pin-color-b); }
-        50%  { box-shadow: 0 0 0 9px transparent,
+        50%  { box-shadow: 0 0 0 9px  var(--pin-color-zero),
                            0 2px 16px var(--pin-color-c); }
-        100% { box-shadow: 0 0 0 0px transparent,
+        100% { box-shadow: 0 0 0 0px  var(--pin-color-zero),
                            0 2px  8px var(--pin-color-b); }
       }
     `;
@@ -82,13 +95,6 @@
 
   /* ─── 2. Pin styles + glow animation ─── */
 
-  function hexToRgb(hex) {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `${r},${g},${b}`;
-  }
-
   function injectPinStyles(events) {
     const existing = document.getElementById('dt-featured-pin-styles');
     if (existing) existing.remove();
@@ -96,17 +102,22 @@
     const rules = events.map(({ slug, color }) => {
       const uri = makeFeaturedPinUri(color);
       const rgb = hexToRgb(color);
+      if (!rgb) {
+        console.warn(`[DT Featured] Could not parse color for slug "${slug}": ${color}`);
+        return '';
+      }
       return `
         .${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) {
           background-image: ${uri} !important;
-          --pin-color-a: rgba(${rgb}, 0.65);
-          --pin-color-b: rgba(${rgb}, 0.40);
-          --pin-color-c: rgba(${rgb}, 0.60);
+          --pin-color-a:    rgba(${rgb}, 0.65);
+          --pin-color-b:    rgba(${rgb}, 0.40);
+          --pin-color-c:    rgba(${rgb}, 0.60);
+          --pin-color-zero: rgba(${rgb}, 0);
           animation: dt-glow 2s ease-in-out infinite !important;
           border-radius: 50% !important;
         }
       `;
-    });
+    }).filter(Boolean);
 
     if (!rules.length) return;
     const style = document.createElement('style');
