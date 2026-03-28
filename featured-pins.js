@@ -1,13 +1,11 @@
 /**
  * Drive This – Featured Event Pins & Tooltips
- * Version: 1.8.0
+ * Version: 1.8.1
  *
- * Changes from 1.7.0:
- *  - FIX: Race condition (50% load failure) — color fallback + retryColorInjection()
- *    extractColor() returning null no longer silently drops events
- *  - FIX: Glow clipped on pin click — overflow:visible on .mapboxgl-marker + pin element
- *  - FIX: Featured pins always on top — z-index:100 applied to .mapboxgl-marker parent
- *  - FIX: Visual hierarchy — featured pins enlarged to 24px, normal pins reduced to 14px
+ * Changes from 1.8.0:
+ *  - Normal pins: 16px, Featured pins: 22px
+ *  - Glow restored: self-contained box-shadow in injectPinStyles(), no longer
+ *    dependent on map-extras.js (which was being overridden by background-image)
  */
 (function () {
   'use strict';
@@ -22,8 +20,7 @@
   /* ─── Helpers ─── */
 
   function makeFeaturedPinUri(color) {
-    // 24px (up from 20px) for stronger visual contrast vs normal pins
-    const svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" fill="${color}" stroke="${color}" stroke-width="3"/></svg>`;
+    const svg = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="8" fill="${color}" stroke="${color}" stroke-width="2.5"/></svg>`;
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   }
 
@@ -83,8 +80,8 @@
     style.textContent = [
       // Cursor
       `.cru-ncf-pin { cursor: pointer !important; }`,
-      // FIX: Normal pins reduced to 14px for stronger visual hierarchy vs featured (24px)
-      `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin) { width: 14px !important; height: 14px !important; }`,
+      // FIX: Normal pins reduced to 16px for stronger visual hierarchy vs featured (22px)
+      `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin) { width: 16px !important; height: 16px !important; }`,
       // FIX: Glow must not be clipped by marker container
       `.mapboxgl-marker { overflow: visible !important; }`,
       `.cru-ncf-pin { overflow: visible !important; }`,
@@ -99,12 +96,18 @@
     if (existing) existing.remove();
     const rules = events.map(({ slug, color }) => {
       const uri = makeFeaturedPinUri(color);
+      // Glow via box-shadow — self-contained, not dependent on map-extras.js.
+      // Two layers: tight halo (40% opacity) + soft outer glow (20% opacity).
+      // Hex alpha: 66 = ~40%, 33 = ~20%
+      const glow = `0 0 6px 3px ${color}66, 0 0 18px 8px ${color}33`;
       return [
         `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) {`,
         `  background-image: ${uri} !important;`,
-        `  width: 24px !important;`,
-        `  height: 24px !important;`,
+        `  width: 22px !important;`,
+        `  height: 22px !important;`,
+        `  border-radius: 50% !important;`,
         `  overflow: visible !important;`,
+        `  box-shadow: ${glow} !important;`,
         `}`,
       ].join('\n');
     });
