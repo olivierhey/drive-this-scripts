@@ -1,26 +1,21 @@
 /**
- * Drive This – Featured Event Pins & Tooltips
- * Version: 1.8.2
+ * Drive This – Featured Event Pins
+ * Version: 1.9.0
  *
- * Changes from 1.8.1:
- *  - FIX: Gap between circle and glow — SVG r="10" fills 22px element flush
- *  - FIX: Glow pulse animation restored — self-contained @keyframes dt-glow-pulse
- *    using CSS custom properties per slug (no longer needs map-extras.js)
+ * Changes from 1.8.2:
+ *  - Persistent name tooltips above featured pins removed
+ *  - All other fixes from 1.8.x retained:
+ *    race condition fix, color retry, glow pulse, z-index, overflow
  */
 (function () {
   'use strict';
 
-  const ZOOM_THRESHOLD = 5;
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
-  let currentZoom = 4;
-  let tooltipLayer = null;
-  let tooltipMap = {}; // slug -> wrapEl
-  let rafId = null;
 
   /* ─── Helpers ─── */
 
   function makeFeaturedPinUri(color) {
-    // r="10" fills 22px viewBox nearly flush → eliminates gap between circle and glow
+    // r="10" fills 22px viewBox flush → no gap between circle edge and glow
     const svg = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="10" fill="${color}"/></svg>`;
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   }
@@ -51,9 +46,8 @@
     document.querySelectorAll('[data-featured="1"][data-slug]').forEach(el => {
       const slug = el.dataset.slug?.trim();
       if (!slug) return;
-      // FIX: Previously `if (!color) return` silently dropped events when Webflow CSS
-      // wasn't fully applied yet — caused ~50% load failure. Now falls back to Drive This
-      // gold and retryColorInjection() will patch real colors 2.5s later.
+      // Fallback color prevents silent drop when Webflow CSS isn't fully applied yet.
+      // retryColorInjection() will patch real colors 2.5s later.
       const color = extractColor(el) || '#C8A84B';
       events.push({
         slug,
@@ -62,13 +56,6 @@
       });
     });
     return events;
-  }
-
-  /* ─── Drawer state helper ─── */
-
-  function isDrawerOpen() {
-    const drawerEl = document.getElementById('dt-drawer');
-    return drawerEl ? drawerEl.classList.contains('is-active') : false;
   }
 
   /* ─── 1. Global CSS ─── */
@@ -80,10 +67,12 @@
     style.id = 'dt-featured-global-css';
     style.textContent = [
       `.cru-ncf-pin { cursor: pointer !important; }`,
+      // Normal pins 16px — smaller than featured (22px) for clear visual hierarchy
       `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin) { width: 16px !important; height: 16px !important; }`,
+      // Glow must not be clipped by marker container
       `.mapboxgl-marker { overflow: visible !important; }`,
       `.cru-ncf-pin { overflow: visible !important; }`,
-      // Glow pulse animation
+      // Glow pulse keyframe — colors supplied per-pin via CSS custom properties
       `@keyframes dt-glow-pulse {`,
       `  0%   { box-shadow: var(--dt-glow-min); }`,
       `  50%  { box-shadow: var(--dt-glow-max); }`,
@@ -100,7 +89,6 @@
     if (existing) existing.remove();
     const rules = events.map(({ slug, color }) => {
       const uri = makeFeaturedPinUri(color);
-      // CSS custom properties per-slug carry the glow colors into the shared keyframe
       const glowMin = `0 0 4px 2px ${color}55, 0 0 10px 4px ${color}22`;
       const glowMax = `0 0 8px 5px ${color}99, 0 0 22px 10px ${color}44`;
       return [
@@ -130,7 +118,6 @@
   function applyCardStripes(events) {
     const colorMap = {};
     events.forEach(({ slug, color }) => { colorMap[slug] = color; });
-
     document.querySelectorAll('[data-featured="1"][data-slug]').forEach(card => {
       const slug = card.dataset.slug?.trim();
       const color = colorMap[slug] || extractColor(card);
@@ -143,14 +130,12 @@
     });
   }
 
-  /* ─── 4. Apply z-index + overflow to .mapboxgl-marker parents ─── */
+  /* ─── 4. z-index + overflow on .mapboxgl-marker parents ─── */
 
   function applyFeaturedMarkerStyles(events) {
     events.forEach(({ slug }) => {
       const pin = document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`);
       if (!pin) return;
-      // FIX: Set z-index on the actual Mapbox marker wrapper so featured pins
-      // always render above normal pins
       const marker = pin.closest('.mapboxgl-marker');
       if (marker) {
         marker.style.zIndex = '100';
@@ -162,8 +147,6 @@
   /* ─── 5. Retry color injection ─── */
 
   function retryColorInjection() {
-    // FIX: 2.5s after init, re-check colors now that Webflow CSS is fully applied.
-    // Updates any pins that got the fallback gold color on first pass.
     setTimeout(() => {
       if (!window._dtFeaturedEvents?.length) return;
       const updated = [];
@@ -184,172 +167,6 @@
     }, 2500);
   }
 
-  /* ─── 6. Tooltip layer ─── */
-
-  function getMapContainer() {
-    return document.querySelector('.mapboxgl-map') ||
-           document.querySelector('.ncf-map-wrapper') ||
-           document.querySelector('[class*="ncf-map"]');
-  }
-
-  function ensureTooltipLayer() {
-    if (tooltipLayer && document.contains(tooltipLayer)) return true;
-    const mapEl = getMapContainer();
-    if (!mapEl) return false;
-    if (getComputedStyle(mapEl).position === 'static') mapEl.style.position = 'relative';
-    tooltipLayer = document.createElement('div');
-    tooltipLayer.id = 'dt-featured-tooltip-layer';
-    tooltipLayer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:9999;';
-    mapEl.appendChild(tooltipLayer);
-    return true;
-  }
-
-  function buildTooltips(events) {
-    if (!ensureTooltipLayer()) return;
-    tooltipLayer.innerHTML = '';
-    tooltipMap = {};
-    events.forEach(({ slug, name }) => {
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:absolute;transform:translate(-50%,-100%);pointer-events:none;padding-bottom:6px;opacity:0;';
-      const label = document.createElement('div');
-      label.style.cssText = [
-        'background:rgba(15,15,15,0.92)',
-        'border:1px solid rgba(255,255,255,0.14)',
-        'color:#fff',
-        'font-size:11px',
-        'font-weight:600',
-        'font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif',
-        'white-space:nowrap',
-        'padding:5px 9px',
-        'border-radius:5px',
-      ].join(';');
-      label.textContent = name;
-      wrap.appendChild(label);
-      tooltipLayer.appendChild(wrap);
-      tooltipMap[slug] = wrap;
-    });
-  }
-
-  /* ─── 7. Position tooltips ─── */
-
-  function positionTooltips() {
-    if (!tooltipLayer) return;
-
-    // Don't touch tooltips while the drawer is open — avoids blink on mobile
-    if (isDrawerOpen()) return;
-
-    const mapEl = getMapContainer();
-    if (!mapEl) return;
-    const mapRect = mapEl.getBoundingClientRect();
-    const show = currentZoom >= ZOOM_THRESHOLD;
-
-    Object.entries(tooltipMap).forEach(([slug, wrap]) => {
-      if (!show) {
-        wrap.style.opacity = '0';
-        return;
-      }
-      const pin = document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`);
-      if (!pin) return;
-      const pinRect = pin.getBoundingClientRect();
-      if (pinRect.width === 0) return;
-
-      const x = Math.round(pinRect.left - mapRect.left + pinRect.width / 2);
-      const y = Math.round(pinRect.top - mapRect.top);
-      const newLeft = `${x}px`;
-      const newTop  = `${y}px`;
-      if (wrap.style.left !== newLeft) wrap.style.left = newLeft;
-      if (wrap.style.top  !== newTop)  wrap.style.top  = newTop;
-      wrap.style.opacity = '1';
-    });
-  }
-
-  /* ─── 8. Scheduled reposition (RAF-debounced) ─── */
-
-  function scheduleReposition() {
-    if (rafId) return;
-    rafId = requestAnimationFrame(() => {
-      rafId = null;
-      positionTooltips();
-    });
-  }
-
-  /* ─── 9. Drawer awareness ────────────────────────────────────────────────
-   *
-   * Observes the drawer's class list.
-   * - When drawer opens (.is-active added): hide all tooltips immediately.
-   * - When drawer closes (.is-active removed): wait briefly, then reposition.
-   *
-   * ─────────────────────────────────────────────────────────────────────── */
-  function setupDrawerAwareness() {
-    const drawerEl = document.getElementById('dt-drawer');
-    if (!drawerEl) {
-      setTimeout(setupDrawerAwareness, 500);
-      return;
-    }
-
-    new MutationObserver(() => {
-      if (drawerEl.classList.contains('is-active')) {
-        Object.values(tooltipMap).forEach(wrap => {
-          wrap.style.opacity = '0';
-        });
-      } else {
-        setTimeout(positionTooltips, 400);
-      }
-    }).observe(drawerEl, { attributes: true, attributeFilter: ['class'] });
-
-    console.log('[DT Featured] Drawer awareness active.');
-  }
-
-  /* ─── 10. Event listeners ─── */
-
-  function setupEventListeners() {
-    const mapEl = getMapContainer();
-    if (!mapEl) return;
-
-    // Zoom via scroll wheel
-    mapEl.addEventListener('wheel', e => {
-      currentZoom = Math.max(1, Math.min(14, currentZoom - e.deltaY / 300));
-      scheduleReposition();
-    }, { passive: true });
-
-    // Zoom via +/- buttons
-    document.querySelectorAll('.mapboxgl-ctrl-zoom-in, .mapboxgl-ctrl-zoom-out').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const isIn = btn.classList.contains('mapboxgl-ctrl-zoom-in');
-        currentZoom = Math.max(1, Math.min(14, currentZoom + (isIn ? 1 : -1)));
-        scheduleReposition();
-      });
-    });
-
-    // Pan
-    let isPanning = false;
-    const canvas = mapEl.querySelector('.mapboxgl-canvas');
-    if (canvas) {
-      canvas.addEventListener('mousedown', () => { isPanning = true; });
-      window.addEventListener('mouseup', () => { isPanning = false; });
-      canvas.addEventListener('mousemove', () => {
-        if (isPanning) scheduleReposition();
-      });
-      canvas.addEventListener('touchmove', scheduleReposition, { passive: true });
-    }
-
-    // Window resize
-    window.addEventListener('resize', scheduleReposition);
-
-    // Pin click → map fly-to animation → reposition during animation
-    mapEl.addEventListener('click', () => {
-      [100, 300, 600, 1000].forEach(delay => {
-        setTimeout(positionTooltips, delay);
-      });
-    });
-
-    // Initial positioning
-    setTimeout(positionTooltips, 800);
-    setTimeout(positionTooltips, 1500);
-
-    console.log(`[DT Featured] Ready. Zoom threshold: ${ZOOM_THRESHOLD}`);
-  }
-
   /* ─── Bootstrap ─── */
 
   function init(events) {
@@ -358,18 +175,20 @@
     injectPinStyles(events);
     applyCardStripes(events);
 
+    const getMapContainer = () =>
+      document.querySelector('.mapboxgl-map') ||
+      document.querySelector('.ncf-map-wrapper') ||
+      document.querySelector('[class*="ncf-map"]');
+
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
       const firstPin = document.querySelector(`.${SLUG_CLASS_PREFIX}${events[0].slug}`);
-      const mapEl = getMapContainer();
-      if (firstPin && mapEl) {
+      if (firstPin && getMapContainer()) {
         clearInterval(interval);
-        buildTooltips(events);
-        setupEventListeners();
-        setupDrawerAwareness();
-        applyFeaturedMarkerStyles(events); // FIX: z-index + overflow on marker wrapper
-        retryColorInjection();              // FIX: re-apply real colors after CSS settles
+        applyFeaturedMarkerStyles(events);
+        retryColorInjection();
+        console.log('[DT Featured] Ready.');
       } else if (attempts >= 40) {
         clearInterval(interval);
         console.warn('[DT Featured] Map or pins not found.');
