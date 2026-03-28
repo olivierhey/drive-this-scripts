@@ -1,11 +1,11 @@
 /**
  * Drive This – Featured Event Pins & Tooltips
- * Version: 1.8.1
+ * Version: 1.8.2
  *
- * Changes from 1.8.0:
- *  - Normal pins: 16px, Featured pins: 22px
- *  - Glow restored: self-contained box-shadow in injectPinStyles(), no longer
- *    dependent on map-extras.js (which was being overridden by background-image)
+ * Changes from 1.8.1:
+ *  - FIX: Gap between circle and glow — SVG r="10" fills 22px element flush
+ *  - FIX: Glow pulse animation restored — self-contained @keyframes dt-glow-pulse
+ *    using CSS custom properties per slug (no longer needs map-extras.js)
  */
 (function () {
   'use strict';
@@ -20,7 +20,8 @@
   /* ─── Helpers ─── */
 
   function makeFeaturedPinUri(color) {
-    const svg = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="8" fill="${color}" stroke="${color}" stroke-width="2.5"/></svg>`;
+    // r="10" fills 22px viewBox nearly flush → eliminates gap between circle and glow
+    const svg = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="10" fill="${color}"/></svg>`;
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   }
 
@@ -78,13 +79,16 @@
     const style = document.createElement('style');
     style.id = 'dt-featured-global-css';
     style.textContent = [
-      // Cursor
       `.cru-ncf-pin { cursor: pointer !important; }`,
-      // FIX: Normal pins reduced to 16px for stronger visual hierarchy vs featured (22px)
       `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin) { width: 16px !important; height: 16px !important; }`,
-      // FIX: Glow must not be clipped by marker container
       `.mapboxgl-marker { overflow: visible !important; }`,
       `.cru-ncf-pin { overflow: visible !important; }`,
+      // Glow pulse animation
+      `@keyframes dt-glow-pulse {`,
+      `  0%   { box-shadow: var(--dt-glow-min); }`,
+      `  50%  { box-shadow: var(--dt-glow-max); }`,
+      `  100% { box-shadow: var(--dt-glow-min); }`,
+      `}`,
     ].join('\n');
     document.head.appendChild(style);
   }
@@ -96,18 +100,20 @@
     if (existing) existing.remove();
     const rules = events.map(({ slug, color }) => {
       const uri = makeFeaturedPinUri(color);
-      // Glow via box-shadow — self-contained, not dependent on map-extras.js.
-      // Two layers: tight halo (40% opacity) + soft outer glow (20% opacity).
-      // Hex alpha: 66 = ~40%, 33 = ~20%
-      const glow = `0 0 6px 3px ${color}66, 0 0 18px 8px ${color}33`;
+      // CSS custom properties per-slug carry the glow colors into the shared keyframe
+      const glowMin = `0 0 4px 2px ${color}55, 0 0 10px 4px ${color}22`;
+      const glowMax = `0 0 8px 5px ${color}99, 0 0 22px 10px ${color}44`;
       return [
         `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) {`,
+        `  --dt-glow-min: ${glowMin};`,
+        `  --dt-glow-max: ${glowMax};`,
         `  background-image: ${uri} !important;`,
         `  width: 22px !important;`,
         `  height: 22px !important;`,
         `  border-radius: 50% !important;`,
         `  overflow: visible !important;`,
-        `  box-shadow: ${glow} !important;`,
+        `  box-shadow: ${glowMin} !important;`,
+        `  animation: dt-glow-pulse 2.4s ease-in-out infinite !important;`,
         `}`,
       ].join('\n');
     });
