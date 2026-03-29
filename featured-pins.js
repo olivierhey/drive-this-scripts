@@ -1,21 +1,25 @@
 /**
  * Drive This – Featured Event Pins
- * Version: 1.9.3
+ * Version: 2.0.0
  *
- * Changes from 1.9.2:
- *  - Normal pins: 18px (up from 16px)
- *  - Featured pins: glow removed
+ * Changes from 1.9.3:
+ *  - Featured pins: 24px (up from 22px)
+ *  - Active pin state: normal pins 22px, featured pins 28px when popup open
+ *  - Race condition fix: MutationObserver applies styles per-pin as they appear
+ *    instead of waiting for ALL pins simultaneously (was blocking on off-screen pins)
+ *  - Hover flicker fix: CSS ::before bridge fills the gap between tooltip and pin
+ *  - Staggered retry syncs ensure pins styled even after map pan/zoom
  */
 (function () {
   'use strict';
 
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
+  let featuredSlugs = new Set();
 
   /* ─── Helpers ─── */
 
   function makeFeaturedPinUri(color) {
-    // r="10" fills the 22px element flush to the edge — no gap between circle and glow
-    const svg = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="10" fill="${color}"/></svg>`;
+    const svg = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="${color}"/></svg>`;
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   }
 
@@ -45,8 +49,6 @@
     document.querySelectorAll('[data-featured="1"][data-slug]').forEach(el => {
       const slug = el.dataset.slug?.trim();
       if (!slug) return;
-      // Fallback prevents silent drop when Webflow CSS isn't fully painted yet.
-      // retryColorInjection() will patch real colors 2.5s later.
       const color = extractColor(el) || '#C8A84B';
       events.push({
         slug,
@@ -56,8 +58,6 @@
     });
     return events;
   }
-
-  /* ─── Map container helper ─── */
 
   function getMapContainer() {
     return document.querySelector('.mapboxgl-map') ||
@@ -73,15 +73,30 @@
     const style = document.createElement('style');
     style.id = 'dt-featured-global-css';
     style.textContent = [
-      // Pointer cursor on all pins
+      // Cursor
       `.cru-ncf-pin { cursor: pointer !important; }`,
-      // Normal pins 18px — visually subordinate to featured (22px)
+      // Normal pins 18px
       `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin) { width: 18px !important; height: 18px !important; }`,
-      // Glow must not be clipped at any level of the marker stack
+      // Active state: normal pins grow to 22px when popup open
+      `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin).active { width: 22px !important; height: 22px !important; }`,
+      // Overflow must be visible for z-index and glow effects
       `.mapboxgl-marker { overflow: visible !important; }`,
       `.cru-ncf-pin { overflow: visible !important; }`,
-      // Kills NCF hover tooltip flicker: the NCF tooltip appears above the pin and
-      // steals mouseleave, creating a flicker loop. pointer-events:none breaks it.
+      // FIX: Bridge the gap between NCF tooltip and pin top edge.
+      // The ~4px gap causes mouseleave to fire on the pin when cursor
+      // moves into the gap → tooltip hides → cursor back on pin → flicker loop.
+      // A transparent ::before pseudo-element extends the pin's hover area
+      // upward to cover the gap, so the marker never loses the cursor.
+      `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin)::before {`,
+      `  content: '';`,
+      `  position: absolute;`,
+      `  top: -10px;`,
+      `  left: -4px;`,
+      `  right: -4px;`,
+      `  height: 14px;`,
+      `  background: transparent;`,
+      `}`,
+      // Tooltip pointer-events off to prevent them stealing hover
       `.mapboxgl-marker [class*="tooltip"] { pointer-events: none !important; }`,
       `.mapboxgl-marker [class*="ncf-tip"]  { pointer-events: none !important; }`,
       `.mapboxgl-marker [class*="popup"]    { pointer-events: none !important; }`,
@@ -98,12 +113,18 @@
     const rules = events.map(({ slug, color }) => {
       const uri = makeFeaturedPinUri(color);
       return [
+        // Base: 24px solid fill
         `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) {`,
         `  background-image: ${uri} !important;`,
-        `  width: 22px !important;`,
-        `  height: 22px !important;`,
+        `  width: 24px !important;`,
+        `  height: 24px !important;`,
         `  border-radius: 50% !important;`,
         `  overflow: visible !important;`,
+        `}`,
+        // Active state: grow to 28px when popup open
+        `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin).active {`,
+        `  width: 28px !important;`,
+        `  height: 28px !important;`,
         `}`,
       ].join('\n');
     });
@@ -132,25 +153,69 @@
     });
   }
 
-  /* ─── 4. z-index + overflow on .mapboxgl-marker parents ─── */
+  /* ─── 4. Apply marker styles to a single pin ─── */
 
-  function applyFeaturedMarkerStyles(events) {
-    events.forEach(({ slug }) => {
+  function styleMarker(pin) {
+    pin.style.position = 'relative'; // needed for ::before pseudo-element
+    const marker = pin.closest('.mapboxgl-marker');
+    if (marker) {
+      marker.style.zIndex = '100';
+      marker.style.overflow = 'visible';
+    }
+  }
+
+  /* ─── 5. Sweep: style all featured pins currently in DOM ─── */
+
+  function sweepAndStyle() {
+    let count = 0;
+    featuredSlugs.forEach(slug => {
       const pin = document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`);
-      if (!pin) return;
-      const marker = pin.closest('.mapboxgl-marker');
-      if (marker) {
-        marker.style.zIndex = '100';
-        marker.style.overflow = 'visible';
-      }
+      if (pin) { styleMarker(pin); count++; }
+    });
+    return count;
+  }
+
+  /* ─── 6. MutationObserver: style pins the moment they appear ─── */
+  // This is the core fix for the race condition: instead of waiting for ALL
+  // pins to appear before styling ANY, we style each pin immediately when
+  // it's added to the DOM. Off-screen pins no longer block on-screen ones.
+
+  function setupPinObserver(events) {
+    const mapEl = getMapContainer();
+    if (!mapEl) return;
+
+    const observer = new MutationObserver(() => {
+      events.forEach(({ slug }) => {
+        const pin = document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`);
+        if (pin && !pin.dataset.dtStyled) {
+          pin.dataset.dtStyled = '1';
+          styleMarker(pin);
+          console.log(`[DT Featured] Styled pin: ${slug}`);
+        }
+      });
+    });
+
+    observer.observe(mapEl, { childList: true, subtree: true });
+
+    // Also do immediate + staggered sweeps to catch pins already in DOM
+    // and pins that appear after map pan/zoom
+    sweepAndStyle();
+    [500, 1500, 3000, 6000].forEach(delay => {
+      setTimeout(() => {
+        events.forEach(({ slug }) => {
+          const pin = document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`);
+          if (pin && !pin.dataset.dtStyled) {
+            pin.dataset.dtStyled = '1';
+            styleMarker(pin);
+          }
+        });
+      }, delay);
     });
   }
 
-  /* ─── 5. Retry color injection ─── */
+  /* ─── 7. Retry color injection ─── */
 
   function retryColorInjection() {
-    // Re-check colors 2.5s after init — by then Webflow CSS is fully applied
-    // and any pins that got the fallback gold will be updated with real colors.
     setTimeout(() => {
       if (!window._dtFeaturedEvents?.length) return;
       const updated = [];
@@ -166,7 +231,7 @@
         return u ? { ...ev, color: u.color } : ev;
       });
       injectPinStyles(window._dtFeaturedEvents);
-      applyFeaturedMarkerStyles(window._dtFeaturedEvents);
+      sweepAndStyle();
       console.log('[DT Featured] Colors refreshed after retry.');
     }, 2500);
   }
@@ -175,39 +240,27 @@
 
   function init(events) {
     window._dtFeaturedEvents = events;
+    featuredSlugs = new Set(events.map(e => e.slug));
+
     injectGlobalCSS();
     injectPinStyles(events);
     applyCardStripes(events);
 
+    // Wait for map container, then start observing
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
       const mapEl = getMapContainer();
-      // Wait until ALL featured pins are in the DOM, not just the first.
-      // Previously only events[0] was checked — if it appeared before the others,
-      // the interval cleared early and the remaining pins never got their styles.
-      const allPinsPresent = events.every(({ slug }) =>
-        document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`)
-      );
-      if (allPinsPresent && mapEl) {
+      if (mapEl) {
         clearInterval(interval);
-        applyFeaturedMarkerStyles(events);
+        setupPinObserver(events);
         retryColorInjection();
-        console.log('[DT Featured] Ready — all pins found.');
-      } else if (attempts >= 40) {
-        // Timeout: apply styles to whatever pins did load
+        console.log('[DT Featured] Observer active.');
+      } else if (attempts >= 20) {
         clearInterval(interval);
-        const found = events.filter(({ slug }) =>
-          document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`)
-        );
-        if (found.length) {
-          applyFeaturedMarkerStyles(found);
-          console.warn(`[DT Featured] Timeout — styled ${found.length}/${events.length} pins.`);
-        } else {
-          console.warn('[DT Featured] Map or pins not found.');
-        }
+        console.warn('[DT Featured] Map container not found.');
       }
-    }, 500);
+    }, 250);
   }
 
   function waitForData() {
