@@ -1,15 +1,11 @@
 /**
  * Drive This – Featured Event Pins
- * Version: 1.9.0
+ * Version: 1.9.1
  *
- * Changes from 1.7.0:
- *  - Persistent tooltips removed entirely
- *  - Glow: self-contained box-shadow + @keyframes dt-glow-pulse
- *    (no longer dependent on map-extras.js, cannot be clipped or overridden)
- *  - overflow:visible forced on .mapboxgl-marker so glow is never clipped
- *  - Featured pins 22px, normal pins 16px (stronger visual hierarchy)
- *  - Featured marker z-index:100 (always above normal pins)
- *  - Race condition fix: color fallback #C8A84B prevents silent event drop
+ * Changes from 1.9.0:
+ *  - FIX: Hover flicker at pin top edge eliminated — pointer-events:none on all
+ *    NCF tooltip/label/popup elements inside .mapboxgl-marker breaks the
+ *    mouseleave loop that caused the cursor and tooltip to flicker Race condition fix: color fallback #C8A84B prevents silent event drop
  *  - retryColorInjection() re-applies real colors 2.5s after init
  */
 (function () {
@@ -86,6 +82,12 @@
       // Glow must not be clipped at any level of the marker stack
       `.mapboxgl-marker { overflow: visible !important; }`,
       `.cru-ncf-pin { overflow: visible !important; }`,
+      // Kill NCF's built-in hover tooltip flicker: the tooltip appears above the pin
+      // and steals mouseleave, creating an enter/leave loop. pointer-events:none breaks it.
+      `.mapboxgl-marker [class*="tooltip"] { pointer-events: none !important; }`,
+      `.mapboxgl-marker [class*="ncf-tip"] { pointer-events: none !important; }`,
+      `.mapboxgl-marker [class*="popup"]   { pointer-events: none !important; }`,
+      `.mapboxgl-marker [class*="label"]   { pointer-events: none !important; }`,
       // Shared keyframe — individual glow colors injected via CSS custom props per pin
       `@keyframes dt-glow-pulse {`,
       `  0%   { box-shadow: var(--dt-glow-min); }`,
