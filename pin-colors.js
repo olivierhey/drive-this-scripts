@@ -18,7 +18,7 @@
     'swiss-classic-world': '#f08484',
     'goodwood-festival-of-speed': '#B579F3',
     'sherborne-classic-supercars-show': '#B579F3',
-    'belmot-oldtimer-grand-prix': '#ADE0FC',
+    'belmot-oldtimer-grand-prix': '#FABD61',
     'classic-days-grand-meeting': '#FABD61',
     'bremen-classic-motorshow': '#FABD61',
     'interclassics-maastricht': '#F19E70',
