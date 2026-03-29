@@ -2,10 +2,15 @@
  * Drive This – Featured Event Pins
  * Version: 1.9.0
  *
- * Changes from 1.8.2:
- *  - Persistent name tooltips above featured pins removed
- *  - All other fixes from 1.8.x retained:
- *    race condition fix, color retry, glow pulse, z-index, overflow
+ * Changes from 1.7.0:
+ *  - Persistent tooltips removed entirely
+ *  - Glow: self-contained box-shadow + @keyframes dt-glow-pulse
+ *    (no longer dependent on map-extras.js, cannot be clipped or overridden)
+ *  - overflow:visible forced on .mapboxgl-marker so glow is never clipped
+ *  - Featured pins 22px, normal pins 16px (stronger visual hierarchy)
+ *  - Featured marker z-index:100 (always above normal pins)
+ *  - Race condition fix: color fallback #C8A84B prevents silent event drop
+ *  - retryColorInjection() re-applies real colors 2.5s after init
  */
 (function () {
   'use strict';
@@ -15,7 +20,7 @@
   /* ─── Helpers ─── */
 
   function makeFeaturedPinUri(color) {
-    // r="10" fills 22px viewBox flush → no gap between circle edge and glow
+    // r="10" fills the 22px element flush to the edge — no gap between circle and glow
     const svg = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="11" cy="11" r="10" fill="${color}"/></svg>`;
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   }
@@ -46,7 +51,7 @@
     document.querySelectorAll('[data-featured="1"][data-slug]').forEach(el => {
       const slug = el.dataset.slug?.trim();
       if (!slug) return;
-      // Fallback color prevents silent drop when Webflow CSS isn't fully applied yet.
+      // Fallback prevents silent drop when Webflow CSS isn't fully painted yet.
       // retryColorInjection() will patch real colors 2.5s later.
       const color = extractColor(el) || '#C8A84B';
       events.push({
@@ -58,6 +63,14 @@
     return events;
   }
 
+  /* ─── Map container helper ─── */
+
+  function getMapContainer() {
+    return document.querySelector('.mapboxgl-map') ||
+           document.querySelector('.ncf-map-wrapper') ||
+           document.querySelector('[class*="ncf-map"]');
+  }
+
   /* ─── 1. Global CSS ─── */
 
   function injectGlobalCSS() {
@@ -66,13 +79,14 @@
     const style = document.createElement('style');
     style.id = 'dt-featured-global-css';
     style.textContent = [
+      // Pointer cursor on all pins
       `.cru-ncf-pin { cursor: pointer !important; }`,
-      // Normal pins 16px — smaller than featured (22px) for clear visual hierarchy
+      // Normal pins 16px — visually subordinate to featured (22px)
       `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin) { width: 16px !important; height: 16px !important; }`,
-      // Glow must not be clipped by marker container
+      // Glow must not be clipped at any level of the marker stack
       `.mapboxgl-marker { overflow: visible !important; }`,
       `.cru-ncf-pin { overflow: visible !important; }`,
-      // Glow pulse keyframe — colors supplied per-pin via CSS custom properties
+      // Shared keyframe — individual glow colors injected via CSS custom props per pin
       `@keyframes dt-glow-pulse {`,
       `  0%   { box-shadow: var(--dt-glow-min); }`,
       `  50%  { box-shadow: var(--dt-glow-max); }`,
@@ -89,6 +103,7 @@
     if (existing) existing.remove();
     const rules = events.map(({ slug, color }) => {
       const uri = makeFeaturedPinUri(color);
+      // Two-layer glow: tight halo + soft outer spread, both in event color
       const glowMin = `0 0 4px 2px ${color}55, 0 0 10px 4px ${color}22`;
       const glowMax = `0 0 8px 5px ${color}99, 0 0 22px 10px ${color}44`;
       return [
@@ -147,6 +162,8 @@
   /* ─── 5. Retry color injection ─── */
 
   function retryColorInjection() {
+    // Re-check colors 2.5s after init — by then Webflow CSS is fully applied
+    // and any pins that got the fallback gold will be updated with real colors.
     setTimeout(() => {
       if (!window._dtFeaturedEvents?.length) return;
       const updated = [];
@@ -175,16 +192,12 @@
     injectPinStyles(events);
     applyCardStripes(events);
 
-    const getMapContainer = () =>
-      document.querySelector('.mapboxgl-map') ||
-      document.querySelector('.ncf-map-wrapper') ||
-      document.querySelector('[class*="ncf-map"]');
-
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
       const firstPin = document.querySelector(`.${SLUG_CLASS_PREFIX}${events[0].slug}`);
-      if (firstPin && getMapContainer()) {
+      const mapEl = getMapContainer();
+      if (firstPin && mapEl) {
         clearInterval(interval);
         applyFeaturedMarkerStyles(events);
         retryColorInjection();
