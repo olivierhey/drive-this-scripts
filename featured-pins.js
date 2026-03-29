@@ -1,17 +1,10 @@
 /**
  * Drive This – Featured Event Pins
- * Version: 1.9.1
+ * Version: 1.9.3
  *
- * Changes from 1.7.0:
- *  - Persistent tooltips removed entirely
- *  - Glow: self-contained box-shadow + @keyframes dt-glow-pulse
- *    (no longer dependent on map-extras.js, cannot be clipped or overridden)
- *  - overflow:visible forced on .mapboxgl-marker so glow is never clipped
- *  - pointer-events:none on NCF tooltip/label elements — fixes hover flicker
- *  - Featured pins 22px, normal pins 16px (stronger visual hierarchy)
- *  - Featured marker z-index:100 (always above normal pins)
- *  - Race condition fix: color fallback #C8A84B prevents silent event drop
- *  - retryColorInjection() re-applies real colors 2.5s after init
+ * Changes from 1.9.2:
+ *  - Normal pins: 18px (up from 16px)
+ *  - Featured pins: glow removed
  */
 (function () {
   'use strict';
@@ -82,8 +75,8 @@
     style.textContent = [
       // Pointer cursor on all pins
       `.cru-ncf-pin { cursor: pointer !important; }`,
-      // Normal pins 16px — visually subordinate to featured (22px)
-      `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin) { width: 16px !important; height: 16px !important; }`,
+      // Normal pins 18px — visually subordinate to featured (22px)
+      `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin) { width: 18px !important; height: 18px !important; }`,
       // Glow must not be clipped at any level of the marker stack
       `.mapboxgl-marker { overflow: visible !important; }`,
       `.cru-ncf-pin { overflow: visible !important; }`,
@@ -93,12 +86,6 @@
       `.mapboxgl-marker [class*="ncf-tip"]  { pointer-events: none !important; }`,
       `.mapboxgl-marker [class*="popup"]    { pointer-events: none !important; }`,
       `.mapboxgl-marker [class*="label"]    { pointer-events: none !important; }`,
-      // Shared keyframe — individual glow colors supplied via CSS custom props per pin
-      `@keyframes dt-glow-pulse {`,
-      `  0%   { box-shadow: var(--dt-glow-min); }`,
-      `  50%  { box-shadow: var(--dt-glow-max); }`,
-      `  100% { box-shadow: var(--dt-glow-min); }`,
-      `}`,
     ].join('\n');
     document.head.appendChild(style);
   }
@@ -110,20 +97,13 @@
     if (existing) existing.remove();
     const rules = events.map(({ slug, color }) => {
       const uri = makeFeaturedPinUri(color);
-      // Two-layer glow: tight halo + soft outer spread, both in event color
-      const glowMin = `0 0 4px 2px ${color}55, 0 0 10px 4px ${color}22`;
-      const glowMax = `0 0 8px 5px ${color}99, 0 0 22px 10px ${color}44`;
       return [
         `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) {`,
-        `  --dt-glow-min: ${glowMin};`,
-        `  --dt-glow-max: ${glowMax};`,
         `  background-image: ${uri} !important;`,
         `  width: 22px !important;`,
         `  height: 22px !important;`,
         `  border-radius: 50% !important;`,
         `  overflow: visible !important;`,
-        `  box-shadow: ${glowMin} !important;`,
-        `  animation: dt-glow-pulse 2.4s ease-in-out infinite !important;`,
         `}`,
       ].join('\n');
     });
@@ -202,16 +182,30 @@
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
-      const firstPin = document.querySelector(`.${SLUG_CLASS_PREFIX}${events[0].slug}`);
       const mapEl = getMapContainer();
-      if (firstPin && mapEl) {
+      // Wait until ALL featured pins are in the DOM, not just the first.
+      // Previously only events[0] was checked — if it appeared before the others,
+      // the interval cleared early and the remaining pins never got their styles.
+      const allPinsPresent = events.every(({ slug }) =>
+        document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`)
+      );
+      if (allPinsPresent && mapEl) {
         clearInterval(interval);
         applyFeaturedMarkerStyles(events);
         retryColorInjection();
-        console.log('[DT Featured] Ready.');
+        console.log('[DT Featured] Ready — all pins found.');
       } else if (attempts >= 40) {
+        // Timeout: apply styles to whatever pins did load
         clearInterval(interval);
-        console.warn('[DT Featured] Map or pins not found.');
+        const found = events.filter(({ slug }) =>
+          document.querySelector(`.${SLUG_CLASS_PREFIX}${slug}`)
+        );
+        if (found.length) {
+          applyFeaturedMarkerStyles(found);
+          console.warn(`[DT Featured] Timeout — styled ${found.length}/${events.length} pins.`);
+        } else {
+          console.warn('[DT Featured] Map or pins not found.');
+        }
       }
     }, 500);
   }
