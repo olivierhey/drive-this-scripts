@@ -18,6 +18,32 @@
 /* ── Transitions ── */
 requestAnimationFrame(function(){requestAnimationFrame(function(){document.body.classList.add('dt-transitions-ready')})});
 
+/* ── Demo Events Filter ── */
+(function(){
+  const DEMO_SLUGS = window.DT_DEMO_SLUGS || [];
+  if (!DEMO_SLUGS.length) return;
+  function hideDemoItems() {
+    document.querySelectorAll('.cru-ncf-map-list-item').forEach(item => {
+      if (DEMO_SLUGS.includes(item.dataset.slug || '')) item.style.display = 'none';
+    });
+    DEMO_SLUGS.forEach(slug => {
+      document.querySelectorAll(`.ncf-slug-${slug}`).forEach(pin => {
+        pin.style.display = 'none';
+      });
+    });
+  }
+  function init() {
+    hideDemoItems();
+    const lc = document.querySelector('.horizontal-scroll, .cru-ncf-map-list');
+    if (lc) { const ob = new MutationObserver(() => { setTimeout(hideDemoItems, 100); }); ob.observe(lc, { childList: true, subtree: true }); }
+    const mc = document.querySelector('.ncf-map-wrapper, .cru-ncf-map');
+    if (mc) { const mo = new MutationObserver(() => { setTimeout(hideDemoItems, 100); }); mo.observe(mc, { childList: true, subtree: true }); }
+  }
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', () => { setTimeout(init, 500); }); }
+  else { setTimeout(init, 500); }
+  window.Webflow && window.Webflow.push(() => { setTimeout(init, 500); });
+})();
+
 /* ── Heart Pins ── */
 (function(){const heartPinDataUri='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 20C12 20 2 14.5909 2 8.21591C2 6.83256 2.54705 5.50588 3.52079 4.5277C4.49454 3.54953 5.81522 3 7.19231 3C9.36442 3 11.3 4.2 12 5.0C12.7 4.2 14.6356 3 16.8077 3C18.1848 3 19.5055 3.54953 20.4792 4.5277C21.453 5.50588 22 6.83256 22 8.21591C22 14.5909 12 20 12 20Z" fill="#2a2a3a" stroke="white" stroke-width="3"/></svg>');const originalPins=new Map();function getSlugFromPin(p){const c=p.className.split(' ');const s=c.find(x=>x.startsWith('ncf-slug-'));return s?s.replace('ncf-slug-',''):null}function updatePinAppearance(p,isFav,animate=false){const s=getSlugFromPin(p);if(!s)return;if(!originalPins.has(s)){originalPins.set(s,p.style.backgroundImage)}p.classList.remove('animate-favorite','animate-unfavorite','pulse-ring');if(isFav){if(animate){p.style.backgroundImage=`url("${heartPinDataUri}")`;p.classList.add('is-favorite-pin');void p.offsetWidth;p.classList.add('animate-favorite');const startTime=performance.now();const duration=600;function animateGlow(currentTime){const elapsed=currentTime-startTime;const progress=Math.min(elapsed/duration,1);let spread,opacity;if(progress<.5){spread=progress*16;opacity=.7-(progress*.6)}else{spread=8+((progress-.5)*16);opacity=.4-((progress-.5)*.8)}p.style.boxShadow=`0 0 0 ${spread}px rgba(255, 153, 0, ${opacity})`;if(progress<1){requestAnimationFrame(animateGlow)}else{p.style.boxShadow='';p.classList.remove('animate-favorite','pulse-ring')}}requestAnimationFrame(animateGlow)}else{p.style.backgroundImage=`url("${heartPinDataUri}")`;p.classList.add('is-favorite-pin')}}else{if(animate){p.classList.add('animate-unfavorite');setTimeout(()=>{p.style.backgroundImage=originalPins.get(s)||'';p.classList.remove('is-favorite-pin')},140);setTimeout(()=>{p.classList.remove('animate-unfavorite')},350)}else{p.style.backgroundImage=originalPins.get(s)||'';p.classList.remove('is-favorite-pin')}}}
 
