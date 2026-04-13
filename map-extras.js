@@ -75,15 +75,13 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
   const NOTICE_ID = 'dt-next-edition-notice';
 
   function injectNextEditionNotice() {
-    // Entfernt alte Notice falls vorhanden (Drawer-Wechsel)
     const old = document.getElementById(NOTICE_ID);
     if (old) old.remove();
 
-    // Prüfe ob aktiver Drawer ein past event ist
     const pastBadge = document.getElementById('dt-drawer-past-badge');
     if (!pastBadge || pastBadge.style.display === 'none') return;
 
-    const dateBlock = document.querySelector('.dt-drawer-date.dt-drawer-meta-item.is-past');
+    const dateBlock = document.getElementById('dt-drawer-date'); // ← fix
     if (!dateBlock) return;
 
     const notice = document.createElement('div');
@@ -96,13 +94,10 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
   function init() {
     const drawer = document.getElementById('dt-drawer');
-    if (!drawer) {
-      setTimeout(init, 500);
-      return;
-    }
+    if (!drawer) { setTimeout(init, 500); return; }
+
     const observer = new MutationObserver(() => {
       if (drawer.classList.contains('is-active')) {
-        // Kurz warten bis Drawer-Inhalt geladen ist
         setTimeout(injectNextEditionNotice, 150);
       } else {
         const old = document.getElementById(NOTICE_ID);
@@ -110,6 +105,11 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
       }
     });
     observer.observe(drawer, { attributes: true, attributeFilter: ['class'] });
+
+    // Drawer bereits offen beim Pageload (URL-Parameter)
+    if (drawer.classList.contains('is-active')) {
+      setTimeout(injectNextEditionNotice, 300);
+    }
   }
 
   if (document.readyState === 'loading') {
