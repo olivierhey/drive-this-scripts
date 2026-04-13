@@ -67,3 +67,52 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
 /* ── Past Events Filter ── */
 (function(){function filterPastEvents(){const today=new Date();today.setHours(0,0,0,0);document.querySelectorAll('.cru-ncf-map-list-item').forEach(item=>{const endDateStr=item.dataset.end||item.dataset.start;if(endDateStr){const endDate=new Date(endDateStr);endDate.setHours(23,59,59,999);if(endDate<today){item.style.display='none';const slug=item.dataset.slug||item.dataset.name?.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');if(slug){document.querySelectorAll('.cru-ncf-pin').forEach(pin=>{const pc=pin.className.split(' ');const psc=pc.find(c=>c.startsWith('ncf-slug-'));if(psc){const ps=psc.replace('ncf-slug-','');if(ps===slug){pin.classList.add('is-past-event')}}})}}}})}function init(){filterPastEvents();const lc=document.querySelector('.horizontal-scroll, .cru-ncf-map-list');if(lc){const ob=new MutationObserver(()=>{setTimeout(filterPastEvents,100)});ob.observe(lc,{childList:true,subtree:true})}const mc=document.querySelector('.ncf-map-wrapper, .cru-ncf-map');if(mc){const mo=new MutationObserver(()=>{setTimeout(filterPastEvents,100)});mo.observe(mc,{childList:true,subtree:true})}}if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>{setTimeout(init,500)})}else{setTimeout(init,500)}window.Webflow&&window.Webflow.push(()=>{setTimeout(init,500)})})();
+
+/* ── Past Event: Next Edition Notice ── */
+(function(){
+  const NOTICE_ID = 'dt-next-edition-notice';
+
+  function injectNextEditionNotice() {
+    // Entfernt alte Notice falls vorhanden (Drawer-Wechsel)
+    const old = document.getElementById(NOTICE_ID);
+    if (old) old.remove();
+
+    // Prüfe ob aktiver Drawer ein past event ist
+    const pastBadge = document.getElementById('dt-drawer-past-badge');
+    if (!pastBadge || pastBadge.style.display === 'none') return;
+
+    const dateBlock = document.querySelector('.dt-drawer-date.dt-drawer-meta-item.is-past');
+    if (!dateBlock) return;
+
+    const notice = document.createElement('div');
+    notice.id = NOTICE_ID;
+    notice.style.cssText = 'display:flex; align-items:center; gap:6px; margin-top:4px; font-size:0.75rem; color:rgba(255,255,255,0.45); font-style:italic; padding-left:2px;';
+    notice.textContent = 'Next edition: 2027 – Dates TBA';
+
+    dateBlock.insertAdjacentElement('afterend', notice);
+  }
+
+  function init() {
+    const drawer = document.getElementById('dt-drawer');
+    if (!drawer) {
+      setTimeout(init, 500);
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      if (drawer.classList.contains('is-active')) {
+        // Kurz warten bis Drawer-Inhalt geladen ist
+        setTimeout(injectNextEditionNotice, 150);
+      } else {
+        const old = document.getElementById(NOTICE_ID);
+        if (old) old.remove();
+      }
+    });
+    observer.observe(drawer, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
