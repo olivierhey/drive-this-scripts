@@ -86,7 +86,7 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
     const notice = document.createElement('div');
     notice.id = NOTICE_ID;
-    notice.style.cssText = 'display:flex; align-items:center; gap:6px; margin-top:4px; font-size:0.75rem; color:rgba(255,255,255,0.45); font-style:italic; padding-left:2px;';
+    notice.style.cssText = 'display:flex; align-items:center; gap:6px; margin-top:4px; font-size:0.75rem; color:inherit; opacity:0.5; font-style:italic; padding-left:2px;';
     notice.textContent = 'Next edition: 2027 – Dates TBA';
 
     dateBlock.insertAdjacentElement('afterend', notice);
