@@ -1,6 +1,6 @@
 /**
  * Drive This – Map Extras
- * Version: 1.0.1
+ * Version: 1.0.2
  *
  * Combines:
  *  - Transitions ready class
@@ -13,6 +13,8 @@
  *  - debouncedSync uses clearTimeout instead of early-return (was skipping mutations)
  *  - initFavoritePins retries sync at 500ms, 1s, 2s, 3.5s after init (NCF loads pins in waves)
  *  - .mapboxgl-map added as primary container selector
+ *
+ * v1.0.2: Past event next edition notice in drawer
  */
 
 /* ── Transitions ── */
