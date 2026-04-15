@@ -2,7 +2,7 @@
  * Drive This – Dynamic Pin Coloring
  * Dark pin with colored country ring.
  *
- * Version: 2.2.0
+ * Version: 2.2.1
  */
 (function () {
   'use strict';
@@ -46,22 +46,40 @@
   function injectStyles(colorMap) {
     const existing = document.getElementById('dt-pin-colors');
     if (existing) existing.remove();
-    const rules = Object.entries(colorMap).map(([slug, color]) => {
+
+    const rules = [];
+
+    // Aktive Pins: :not(.is-past-event) damit Past Events nicht überschrieben werden
+    Object.entries(colorMap).forEach(([slug, color]) => {
       const uri = makePinDataUri(color);
-      return `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) { background-image: ${uri} !important; }`;
+      rules.push(`.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin):not(.is-past-event) { background-image: ${uri} !important; }`);
     });
-    // Past-event pins: per Slug mit Länderfarbe, 40% opacity kommt aus Page CSS
+
+    // Past-event pins: per Slug mit Länderfarbe, exakte Grösse 21x21
     Object.entries(colorMap).forEach(([slug, color]) => {
       const uri = makePastPinDataUri(color);
-      rules.push(`.${SLUG_CLASS_PREFIX}${slug}.is-past-event:not(.is-favorite-pin) { background-image: ${uri} !important; }`);
+      rules.push(
+        `.${SLUG_CLASS_PREFIX}${slug}.is-past-event:not(.is-favorite-pin) { ` +
+        `background-image: ${uri} !important; ` +
+        `width: 21px !important; height: 21px !important; ` +
+        `background-size: contain !important; background-repeat: no-repeat !important; }`
+      );
     });
+
     // Fallback für Past Events ohne Slug-Match
-    rules.push(`.cru-ncf-pin.is-past-event:not(.is-favorite-pin) { background-image: ${makePastPinDataUri(FALLBACK_COLOR)} !important; }`);
+    rules.push(
+      `.cru-ncf-pin.is-past-event:not(.is-favorite-pin) { ` +
+      `background-image: ${makePastPinDataUri(FALLBACK_COLOR)} !important; ` +
+      `width: 21px !important; height: 21px !important; ` +
+      `background-size: contain !important; background-repeat: no-repeat !important; }`
+    );
+
     // Favorite pins leicht erhöht, aber UNTER den Tooltips
     rules.push(`.mapboxgl-marker:has(.is-favorite-pin) { z-index: 500 !important; }`);
     // Tooltips über alles
     rules.push(`.ncf-tooltip-popup-inner-wrapper { position: relative; z-index: 9999 !important; }`);
     rules.push(`.mapboxgl-popup { z-index: 9999 !important; }`);
+
     const style = document.createElement('style');
     style.id = 'dt-pin-colors';
     style.textContent = rules.join('\n');
