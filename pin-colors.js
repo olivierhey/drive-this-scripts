@@ -12,6 +12,7 @@
   const COLOR_OVERRIDES = {
     'autopia-madrid': '#e96565',
     'klassikwelt-bodensee': '#FABD61',
+    'retro-classics-stuttgart': '#FABD61',
     'techno-classica-salon': '#FABD61',
     'concorso-deleganza-villa-deste': '#3adfba',
     'fuori-concorso': '#3adfba',
