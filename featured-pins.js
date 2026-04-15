@@ -3,9 +3,7 @@
  * Version: 2.0.2
  *
  * Changes from 2.0.1:
- *  - ::before bridge removed
- *
- * Changes from 2.0.0:
+ *  - ::before bridge extended (top: -16px, height: 20px) to cover larger tooltip gaps
  *  - Hover scale removed: pins no longer grow on hover, only on click (.active state)
  *    Eliminates the cursor/tooltip flicker loop caused by hover-triggered size changes
  *
@@ -14,6 +12,7 @@
  *  - Active pin state: normal pins 22px, featured pins 28px when popup open
  *  - Race condition fix: MutationObserver applies styles per-pin as they appear
  *    instead of waiting for ALL pins simultaneously (was blocking on off-screen pins)
+ *  - Hover flicker fix: CSS ::before bridge fills the gap between tooltip and pin
  *  - Staggered retry syncs ensure pins styled even after map pan/zoom
  */
 (function () {
@@ -88,6 +87,20 @@
       // Overflow must be visible for z-index and glow effects
       `.mapboxgl-marker { overflow: visible !important; }`,
       `.cru-ncf-pin { overflow: visible !important; }`,
+      // FIX: Bridge the gap between NCF tooltip and pin top edge.
+      // The ~4px gap causes mouseleave to fire on the pin when cursor
+      // moves into the gap → tooltip hides → cursor back on pin → flicker loop.
+      // A transparent ::before pseudo-element extends the pin's hover area
+      // upward to cover the gap, so the marker never loses the cursor.
+      `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin)::before {`,
+      `  content: '';`,
+      `  position: absolute;`,
+      `  top: -16px;`,
+      `  left: -4px;`,
+      `  right: -4px;`,
+      `  height: 20px;`,
+      `  background: transparent;`,
+      `}`,
       // HOVER FIX: No size or transform change on hover – active (.active) only.
       // NCF may inject its own :hover scale; neutralise it explicitly.
       `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin):hover {`,
@@ -159,7 +172,7 @@
   /* ─── 4. Apply marker styles to a single pin ─── */
 
   function styleMarker(pin) {
-    pin.style.position = 'relative';
+    pin.style.position = 'relative'; // needed for ::before pseudo-element
     const marker = pin.closest('.mapboxgl-marker');
     if (marker) {
       marker.style.zIndex = '100';
@@ -179,6 +192,9 @@
   }
 
   /* ─── 6. MutationObserver: style pins the moment they appear ─── */
+  // This is the core fix for the race condition: instead of waiting for ALL
+  // pins to appear before styling ANY, we style each pin immediately when
+  // it's added to the DOM. Off-screen pins no longer block on-screen ones.
 
   function setupPinObserver(events) {
     const mapEl = getMapContainer();
@@ -197,6 +213,8 @@
 
     observer.observe(mapEl, { childList: true, subtree: true });
 
+    // Also do immediate + staggered sweeps to catch pins already in DOM
+    // and pins that appear after map pan/zoom
     sweepAndStyle();
     [500, 1500, 3000, 6000].forEach(delay => {
       setTimeout(() => {
@@ -244,6 +262,7 @@
     injectPinStyles(events);
     applyCardStripes(events);
 
+    // Wait for map container, then start observing
     let attempts = 0;
     const interval = setInterval(() => {
       attempts++;
