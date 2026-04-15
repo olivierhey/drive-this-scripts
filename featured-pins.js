@@ -1,8 +1,9 @@
 /**
  * Drive This – Featured Event Pins
- * Version: 2.0.1
+ * Version: 2.0.2
  *
- * Changes from 2.0.0:
+ * Changes from 2.0.1:
+ *  - ::before bridge extended (top: -16px, height: 20px) to cover larger tooltip gaps
  *  - Hover scale removed: pins no longer grow on hover, only on click (.active state)
  *    Eliminates the cursor/tooltip flicker loop caused by hover-triggered size changes
  *
@@ -94,10 +95,10 @@
       `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin)::before {`,
       `  content: '';`,
       `  position: absolute;`,
-      `  top: -10px;`,
+      `  top: -16px;`,
       `  left: -4px;`,
       `  right: -4px;`,
-      `  height: 14px;`,
+      `  height: 20px;`,
       `  background: transparent;`,
       `}`,
       // HOVER FIX: No size or transform change on hover – active (.active) only.
