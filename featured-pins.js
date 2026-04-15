@@ -1,6 +1,10 @@
 /**
  * Drive This – Featured Event Pins
- * Version: 2.0.0
+ * Version: 2.0.1
+ *
+ * Changes from 2.0.0:
+ *  - Hover scale removed: pins no longer grow on hover, only on click (.active state)
+ *    Eliminates the cursor/tooltip flicker loop caused by hover-triggered size changes
  *
  * Changes from 1.9.3:
  *  - Featured pins: 24px (up from 22px)
@@ -95,6 +99,17 @@
       `  right: -4px;`,
       `  height: 14px;`,
       `  background: transparent;`,
+      `}`,
+      // HOVER FIX: No size or transform change on hover – active (.active) only.
+      // NCF may inject its own :hover scale; neutralise it explicitly.
+      `.cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin):hover {`,
+      `  transform: none !important;`,
+      `  width: 18px !important;`,
+      `  height: 18px !important;`,
+      `}`,
+      // Same for featured pins (slug-specific styles set 24px base)
+      `.mapboxgl-marker:hover .cru-ncf-pin[ncf-pinstyle="default"]:not(.is-favorite-pin) {`,
+      `  transform: none !important;`,
       `}`,
       // Tooltip pointer-events off to prevent them stealing hover
       `.mapboxgl-marker [class*="tooltip"] { pointer-events: none !important; }`,
