@@ -63,7 +63,7 @@
       return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
     }
     Object.entries(colorMap).forEach(([slug, color]) => {
-      rules.push(`.${SLUG_CLASS_PREFIX}${slug}.is-past-event:not(.is-favorite-pin) { background-image: ${makePastPinDataUri(color)} !important; width: 17px !important; height: 17px !important; background-size: contain !important; }`);
+      rules.push(`.cru-ncf-pin.${SLUG_CLASS_PREFIX}${slug}.is-past-event:not(.is-favorite-pin) { background-image: ${makePastPinDataUri(color)} !important; width: 17px !important; height: 17px !important; background-size: contain !important; }`);
     });
     rules.push(`.cru-ncf-pin.is-past-event:not(.is-favorite-pin) { background-image: ${makePastPinDataUri(FALLBACK_COLOR)} !important; width: 17px !important; height: 17px !important; background-size: contain !important; }`);
     // Favorite pins leicht erhöht, aber UNTER den Tooltips
