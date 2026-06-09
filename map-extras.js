@@ -1,6 +1,6 @@
 /**
  * Drive This – Map Extras
- * Version: 1.0.3
+ * Version: 1.0.4
  *
  * Combines:
  *  - Transitions ready class
@@ -17,11 +17,18 @@
  * v1.0.2: Past event next edition notice in drawer
  *
  * v1.0.3 fix: Upcoming badges infinite loop (100% CPU at idle)
- *  - highlightUpcomingEvents() removes/inserts badge nodes, which are childList
- *    mutations. The MutationObserver listened for childList changes and re-ran the
- *    function, which mutated again -> endless ~10x/sec loop over all event cards.
- *  - Observer callback now ignores mutations caused only by .dt-upcoming-badge
- *    nodes, and debounces real NCF load waves with clearTimeout.
+ *  - Tried ignoring badge-only mutations in the observer callback. This broke the
+ *    loop but was too fragile: depending on how NCF re-renders the list, real
+ *    re-renders were sometimes misclassified and badges stopped appearing.
+ *
+ * v1.0.4 fix: Upcoming badges – robust loop prevention + badges restored
+ *  - Replaced node classification with the standard disconnect/reconnect pattern:
+ *    the observer is disconnected while we add badges and reconnected afterwards,
+ *    so our own mutations are never recorded (no loop). highlightUpcomingEvents()
+ *    runs synchronously, so no real NCF mutation is missed in that window.
+ *  - Re-run badging at 500/1000/2000/3500ms to catch NCF load waves (same pattern
+ *    as the favorite-pin block).
+ *  - Guarded against double init.
  */
 
 /* ── Transitions ── */
@@ -107,32 +114,35 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
     })
   }
 
-  /* FIX v1.0.3: ignore self-inflicted badge mutations to break the loop */
-  function isOnlyBadgeMutations(mutations){
-    return mutations.every(m=>{
-      const nodes=[...m.addedNodes,...m.removedNodes];
-      if(nodes.length===0)return true; // attribute-only change, not relevant here
-      return nodes.every(n=>
-        n.nodeType===1 && n.classList && n.classList.contains('dt-upcoming-badge')
-      )
-    })
+  /* FIX v1.0.4: disconnect observer while we mutate, reconnect after.
+     Our own badge inserts/removes are never recorded -> no loop.
+     highlightUpcomingEvents() is synchronous, so no NCF mutation is lost. */
+  let observer=null;
+  let debounceTimer=null;
+  let initialized=false;
+
+  function runHighlight(){
+    const listContainer=document.querySelector('.horizontal-scroll, .cru-ncf-map-list');
+    if(observer)observer.disconnect();
+    highlightUpcomingEvents();
+    if(observer&&listContainer)observer.observe(listContainer,{childList:true,subtree:true});
   }
 
   function init(){
-    highlightUpcomingEvents();
-    const listContainer=document.querySelector('.horizontal-scroll, .cru-ncf-map-list');
-    if(!listContainer)return;
-    let t=null;
-    const observer=new MutationObserver(mutations=>{
-      // Only our own badge nodes changed -> do nothing, otherwise we loop forever
-      if(isOnlyBadgeMutations(mutations))return;
-      clearTimeout(t);
-      t=setTimeout(highlightUpcomingEvents,150)
+    if(initialized)return;
+    initialized=true;
+    observer=new MutationObserver(()=>{
+      clearTimeout(debounceTimer);
+      debounceTimer=setTimeout(runHighlight,150)
     });
-    observer.observe(listContainer,{childList:true,subtree:true})
+    runHighlight();
+    // Catch NCF load waves
+    [500,1000,2000,3500].forEach(d=>setTimeout(runHighlight,d));
   }
 
-  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init)}else{init()}
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',()=>setTimeout(init,500))}
+  else{setTimeout(init,500)}
+  window.Webflow&&window.Webflow.push(()=>setTimeout(init,500));
 })();
 
 /* ── Favorites Filter ── */
