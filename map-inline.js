@@ -1,6 +1,20 @@
 /**
  * Drive This – Map Inline Logic
- * Version: 9.7
+ * Version: 9.8
+ *
+ * Changes from 9.7 (mobile drawer reliability fix):
+ *  - NEW setupPinTapHandler(): direct delegated pointer tap on pins.
+ *    Drawer no longer depends on NCF adding the "active" class
+ *    (which is unreliable on touch, where the first tap is treated
+ *    as hover and only shows the tooltip).
+ *  - Pan detection threshold is now pointerType-aware:
+ *    6px for mouse, 14px for touch (finger taps wobble).
+ *  - Pinch gestures (second pointer down) never open the drawer.
+ *  - Tooltips hidden on touch devices via injected CSS
+ *    (@media hover:none and pointer:coarse) – no hover state exists,
+ *    so tooltips only add an extra tap step.
+ *  - MutationObserver path kept as desktop fallback; the
+ *    currentEventSlug guard prevents double-open.
  *
  * Changes from 9.6:
  *  - Added partnerTier field to getEventData()
@@ -529,8 +543,76 @@ if (cat && catIcons[cat]) {
     });
     mc.addEventListener('pointermove', e => {
       const dx = e.clientX - mapPointerDownX, dy = e.clientY - mapPointerDownY;
-      if (Math.sqrt(dx*dx + dy*dy) > 6) mapPointerMoved = true;
+      /* FIX v9.8: touch-aware threshold – finger taps wobble more than a mouse */
+      const threshold = e.pointerType === 'touch' ? 14 : 6;
+      if (Math.sqrt(dx*dx + dy*dy) > threshold) mapPointerMoved = true;
     });
+  }
+
+  /* ── Direct pin tap → drawer (v9.8) ──
+     On touch devices NCF treats the first tap as hover (tooltip only)
+     and does not reliably toggle the "active" class, so the
+     MutationObserver path misses most taps. This handler reacts to
+     the tap itself: pointerdown/up on the pin, with pan + pinch
+     detection, and opens the drawer directly. */
+  function setupPinTapHandler() {
+    const mapEl = document.querySelector('.ncf-map-wrapper, .cru-ncf-map, [class*="ncf-map"]');
+    if (!mapEl) { setTimeout(setupPinTapHandler, 500); return; }
+
+    let tapDownX = 0, tapDownY = 0, tapPointerId = null, tapMultiTouch = false;
+
+    mapEl.addEventListener('pointerdown', e => {
+      if (tapPointerId !== null) { tapMultiTouch = true; return; } /* second finger = pinch */
+      tapMultiTouch = false;
+      tapPointerId = e.pointerId;
+      tapDownX = e.clientX; tapDownY = e.clientY;
+    }, true);
+
+    mapEl.addEventListener('pointercancel', () => {
+      tapPointerId = null; tapMultiTouch = false;
+    }, true);
+
+    mapEl.addEventListener('pointerup', e => {
+      if (e.pointerId !== tapPointerId) return;
+      tapPointerId = null;
+      if (tapMultiTouch) return;
+
+      const dx = e.clientX - tapDownX, dy = e.clientY - tapDownY;
+      const threshold = e.pointerType === 'touch' ? 14 : 6;
+      if (Math.sqrt(dx*dx + dy*dy) > threshold) return; /* pan, not tap */
+
+      const pin = e.target.closest('.cru-ncf-pin');
+      if (!pin) return;
+
+      const slugClass = [...pin.classList].find(c => c.startsWith('ncf-slug-'));
+      if (!slugClass) return;
+      const slug = slugClass.replace('ncf-slug-', '');
+      if (slug === currentEventSlug && drawer.classList.contains('is-active')) return;
+
+      const li = findEventBySlug(slug);
+      if (!li) return;
+      const d = getEventData(li);
+      /* setTimeout lets NCF finish its own click handling (popup + recenter) first */
+      if (d.slug || d.name) setTimeout(() => openDrawer(d), 50);
+    }, true);
+
+    console.log('[DT] Pin tap handler active');
+  }
+
+  /* ── Hide tooltips on touch devices (v9.8) ──
+     No hover state exists on touch; tooltips only intercept the
+     first tap. Popups and map recentering remain untouched. */
+  function injectTouchStyles() {
+    if (document.getElementById('dt-touch-styles')) return;
+    const s = document.createElement('style');
+    s.id = 'dt-touch-styles';
+    s.textContent = [
+      '@media (hover: none) and (pointer: coarse) {',
+      '  .mapboxgl-marker [class*="tooltip"],',
+      '  .mapboxgl-marker [class*="ncf-tip"] { display: none !important; }',
+      '}'
+    ].join('\n');
+    document.head.appendChild(s);
   }
 
   /* ── Pin click via MutationObserver ── */
@@ -636,7 +718,9 @@ if (cat && catIcons[cat]) {
       }
     };
 
+    injectTouchStyles();
     setTimeout(setupPinObserver,        500);
+    setTimeout(setupPinTapHandler,      500);
     setTimeout(setupPanDetection,       500);
     setTimeout(setupListHeartsObserver, 500);
     openDrawerFromUrl();
@@ -645,6 +729,6 @@ if (cat && catIcons[cat]) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 
-  console.log('DT v9.7');
+  console.log('DT v9.8');
 
 })();
