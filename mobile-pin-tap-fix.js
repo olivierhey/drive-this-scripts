@@ -1,37 +1,30 @@
 /**
  * Drive This – Mobile Pin Tap Fix
- * Version: 1.4.2 (2026-06-20)
+ * Version: 1.4.3 (2026-06-20)
  *
  * Touch only (desktop tap logic untouched). The active pin keeps its
- * native Mapbox popup after the drawer closes, so the user still sees
- * which event is selected. The popup is dismissed by tapping another
- * pin or empty map — NOT by panning (the popup is anchored to the
- * pin's coordinate and follows it, which is the wanted behaviour).
+ * native Mapbox popup after the drawer closes. Dismissal: tap another
+ * pin or tap empty map. Panning keeps the popup (it follows the pin).
  *
- * Changes from 1.4.1:
- *  - Pan-to-dismiss REMOVED. Panning no longer hides the popup; it
- *    stays pinned to its event and Mapbox auto-anchors it on screen.
- *    Dismissal is now only: tap another pin (handled here) or tap
- *    empty map (handled natively by NCF).
- *  - Active-pin highlight ADDED (all devices): while a pin is .active
- *    (popup open) its country colour is swapped to white so it's
- *    obvious which pin the popup belongs to. Purely additive CSS,
- *    .active-only — pin-colors.js and featured-pins.js are untouched.
- *    Normal pin -> white ring, featured pin -> white fill, past "27"
- *    pin -> white digits. Featured detected via [data-dt-styled]
- *    (set by featured-pins.js), past via .is-past-event.
- *  - Dead deselect/background-tap helpers removed.
+ * Changes from 1.4.2:
+ *  - Pin-to-pin switch fixed. NCF ignores a pin tap while another pin
+ *    is selected (only an empty-map tap deselects), so simply removing
+ *    the old pin's .active class was cosmetic: NCF still held the old
+ *    selection, its popup lingered, and the inline drawer's tooltip
+ *    scan reopened the OLD event for a moment. We now do a real
+ *    background-tap deselect first (the only thing NCF treats as a
+ *    deselect), then open the new one. This is the 1.4.0 behaviour
+ *    WITHOUT the staggered clearActivePins that used to strip .active
+ *    from the freshly selected pin (that was the actual flicker).
  *
- * 1.4.1: switch-pin flicker fix (shrink old pin via class removal,
- *        no synthetic deselect, no clearActivePins stripping the new).
+ * 1.4.2: popup persists on pan; white active-pin highlight.
+ * 1.4.1: switch flicker attempt (over-removed the deselect).
  * 1.4.0: popup un-hidden on touch, persist after drawer close.
- * 1.3.0: auto-deselect on close (removed in 1.4.0).
- * 1.2.0: click guard + watchdog + ?dtdebug=1 panel.
- * 1.1.0 / 1.0.0: direct pin tap detection.
+ * 1.3.0: auto-deselect on close. 1.2.0: guard + watchdog + debug.
  */
 (function () {
 
-  /* ── Debug panel (only with ?dtdebug=1) ── */
+  /* -- Debug panel (only with ?dtdebug=1) -- */
   var DEBUG = /[?&]dtdebug=1/.test(window.location.search);
   var dbgEl = null, t0 = Date.now();
   function dlog(msg) {
@@ -64,8 +57,8 @@
     });
   }
 
-  /* ── Guard + watchdog (drawer-open reliability) ── */
-  var guardUntil = 0, pendingLi = null, retried = false;
+  /* -- Guard + watchdog (drawer-open reliability) -- */
+  var guardUntil = 0, pendingLi = null, retried = false, deselecting = false;
 
   document.addEventListener('click', function (e) {
     if (Date.now() < guardUntil && e.isTrusted && e.target.closest &&
@@ -97,12 +90,54 @@
     }
   }
 
+  /* -- Real NCF deselect: a synthetic tap on an empty patch of map.
+        Class removal alone does NOT reset NCF's internal selection,
+        so this is required before selecting a different pin. -- */
+  function dispatchTap(el, cx, cy) {
+    var common = { bubbles: true, cancelable: true, clientX: cx, clientY: cy, view: window };
+    try {
+      el.dispatchEvent(new PointerEvent('pointerdown',
+        Object.assign({ pointerId: 999, pointerType: 'mouse', isPrimary: true }, common)));
+      el.dispatchEvent(new PointerEvent('pointerup',
+        Object.assign({ pointerId: 999, pointerType: 'mouse', isPrimary: true }, common)));
+    } catch (err) { /* PointerEvent not constructible - ignore */ }
+    el.dispatchEvent(new MouseEvent('mousedown', common));
+    el.dispatchEvent(new MouseEvent('mouseup', common));
+    el.dispatchEvent(new MouseEvent('click', common));
+  }
+
+  function deselect() {
+    var canvas = document.querySelector('.mapboxgl-canvas');
+    if (!canvas) return false;
+    var r = canvas.getBoundingClientRect();
+    if (r.width < 60 || r.height < 60) return false;
+    var spots = [
+      [r.width * 0.5, 16], [16, r.height * 0.5],
+      [r.width - 16, r.height * 0.5], [r.width * 0.5, r.height - 16],
+      [16, 16], [r.width - 16, 16]
+    ];
+    for (var i = 0; i < spots.length; i++) {
+      var cx = r.left + spots[i][0], cy = r.top + spots[i][1];
+      var el = document.elementFromPoint(cx, cy);
+      if (!el) continue;
+      if (el.closest('.cru-ncf-pin, .mapboxgl-marker')) continue; /* would select a pin */
+      if (!el.closest('.mapboxgl-canvas-container, .mapboxgl-canvas, .mapboxgl-map')) continue;
+      dlog('deselect: background tap at ' + Math.round(cx) + ',' + Math.round(cy));
+      deselecting = true;
+      dispatchTap(el, cx, cy);
+      setTimeout(function () { deselecting = false; }, 150);
+      return true;
+    }
+    dlog('deselect: no free background spot found');
+    return false;
+  }
+
   function slugify(n) {
     return n.toLowerCase()
-      .replace(/[äÄ]/g, 'ae').replace(/[öÖ]/g, 'oe').replace(/[üÜ]/g, 'ue')
-      .replace(/[ß]/g, 'ss').replace(/[éèêë]/g, 'e').replace(/[àâä]/g, 'a')
-      .replace(/[ùûü]/g, 'u').replace(/[îïì]/g, 'i').replace(/[ôöò]/g, 'o')
-      .replace(/[ñ]/g, 'n').replace(/[ç]/g, 'c')
+      .replace(/[\u00e4\u00c4]/g, 'ae').replace(/[\u00f6\u00d6]/g, 'oe').replace(/[\u00fc\u00dc]/g, 'ue')
+      .replace(/[\u00df]/g, 'ss').replace(/[\u00e9\u00e8\u00ea\u00eb]/g, 'e').replace(/[\u00e0\u00e2]/g, 'a')
+      .replace(/[\u00f9\u00fb]/g, 'u').replace(/[\u00ee\u00ef\u00ec]/g, 'i').replace(/[\u00f4\u00f2]/g, 'o')
+      .replace(/[\u00f1]/g, 'n').replace(/[\u00e7]/g, 'c')
       .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   }
 
@@ -126,9 +161,9 @@
     setTimeout(function () { watchdog(2); }, delay + 840);
   }
 
-  /* ── Active-pin highlight: white versions of the three pin SVGs.
-        Mirrors the shapes in pin-colors.js / featured-pins.js, only
-        recoloured to white; injected as .active overrides. ── */
+  /* -- Active-pin highlight: white versions of the three pin SVGs.
+        Mirrors pin-colors.js / featured-pins.js shapes, recoloured to
+        white; .active-only overrides, the colour scripts are untouched. -- */
   function uri(svg) {
     return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
   }
@@ -149,11 +184,9 @@
     var s = document.createElement('style');
     s.id = 'dt-mobile-tap-fix-styles';
     s.textContent = [
-      /* Hover tooltip stays hidden on touch (no hover state there). */
       '@media (hover:none) and (pointer:coarse){',
       '.cru-ncf-tooltip,.ncf-tooltip-pop-up-wrapper,.ncf-tooltip-popup-inner-wrapper',
       '{display:none!important;}}',
-      /* Active pin -> white, so the popup's owner is obvious. */
       '.cru-ncf-pin.active[ncf-pinstyle="default"]:not(.is-favorite-pin):not(.is-past-event):not([data-dt-styled])',
       '{background-image:' + uri(SVG_NORMAL) + '!important;}',
       '.cru-ncf-pin.active[ncf-pinstyle="default"]:not(.is-favorite-pin):not(.is-past-event)[data-dt-styled]',
@@ -185,7 +218,7 @@
       if (e.pointerType !== 'touch') return;
       if (e.pointerId !== pid) return;
       pid = null;
-      if (multi) return;
+      if (multi || deselecting) return;
 
       var dx = e.clientX - x, dy = e.clientY - y;
       if (Math.sqrt(dx * dx + dy * dy) > 14) return; /* pan -> popup stays, no open */
@@ -203,21 +236,22 @@
       var li = findItem(slug);
       if (!li) return;
 
-      /* Switching from a different active pin: shrink it instantly via
-         class removal (no synthetic deselect -> no flicker). NCF swaps
-         its own popup when the new list item is clicked. */
+      /* If a DIFFERENT pin is selected, NCF ignores this tap. Force a
+         real deselect first, then open the new one once NCF is clean. */
       var prevPin = document.querySelector('.cru-ncf-pin.active');
       if (prevPin && !prevPin.classList.contains(sc)) {
         dlog('pin tap: switching -> ' + slug);
-        prevPin.classList.remove('active');
+        prevPin.classList.remove('active'); /* instant visual shrink */
+        deselect();                          /* real NCF reset */
+        openLi(li, 110);                     /* open after NCF settles */
       } else {
         dlog('pin tap: ' + slug + ' -> opening');
+        openLi(li, 60);
       }
-      openLi(li, 60);
     }, true);
 
     injectStyles();
-    console.log('[DT] Mobile pin tap fix v1.4.2 active' + (DEBUG ? ' (debug)' : ''));
+    console.log('[DT] Mobile pin tap fix v1.4.3 active' + (DEBUG ? ' (debug)' : ''));
   }
 
   if (document.readyState === 'loading') {
