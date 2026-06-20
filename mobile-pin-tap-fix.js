@@ -1,17 +1,30 @@
 /**
  * Drive This – Mobile Pin Tap Fix
- * Version: 1.3.0 (2026-06-12)
+ * Version: 1.4.0 (2026-06-20)
  *
- * Changes from 1.2.0:
- *  - Auto-deselect on drawer close (touch only): NCF keeps the pin
- *    in its internal "selected" state after the drawer closes, so it
- *    consumes the next tap to deselect instead of selecting the new
- *    pin. When the drawer closes, we now simulate a tap on the map
- *    background (a point with no pin under it), which is exactly the
- *    manual workaround that resets NCF. Fallback: if a pin still has
- *    the "active" class shortly after, the class is removed so the
- *    pin at least shrinks back visually.
+ * Goal of this version (touch only, desktop untouched):
+ * Keep the selected pin + its native Mapbox popup visible AFTER the
+ * drawer closes, so the user still sees which event they picked.
+ * Dismiss the popup only on the next deliberate gesture: panning the
+ * map, tapping another pin, or tapping empty map.
  *
+ * Changes from 1.3.0:
+ *  - Popup no longer hidden on touch: `.cru-ncf-pop-up` removed from
+ *    the CSS hide list. Only the hover TOOLTIP stays hidden (no hover
+ *    state on touch). The popup is a standard Mapbox GL popup
+ *    (.mapboxgl-popup) pinned to the pin's coordinate, so it follows
+ *    the pin and survives the recenter animation on its own.
+ *  - Auto-deselect-on-close REMOVED. The pin keeps its .active state
+ *    and NCF keeps the popup after the drawer closes.
+ *  - Pan-to-dismiss ADDED: a touch drag (> 14px) deselects the active
+ *    pin via the same background-tap that NCF treats as a real
+ *    deselect, which also tears down the popup cleanly. NCF does NOT
+ *    hide the popup on drag by itself, so we do it.
+ *  - Switch-pin guard ADDED: tapping a different pin while one is
+ *    active deselects the old one first, so the new pin opens in a
+ *    single tap instead of the old "first tap only deselects" issue.
+ *
+ * v1.3.0: auto-deselect on close via background tap + clearActivePins.
  * v1.2.0: broad click guard (drawer + overlay, 700ms), watchdog
  *         retry, on-screen debug panel via ?dtdebug=1.
  * v1.1.0: overlay click guard, NCF popups hidden on touch.
@@ -55,7 +68,7 @@
     });
   }
 
-  /* ── Guard + watchdog state ── */
+  /* ── Guard + watchdog state (drawer-open reliability) ── */
   var guardUntil = 0;
   var pendingLi = null;
   var retried = false;
@@ -93,7 +106,10 @@
     }
   }
 
-  /* ── Auto-deselect: simulate a background tap on the map ── */
+  /* ── Deselect: simulate a background tap NCF treats as a real
+        deselect. This both shrinks the pin and tears down the
+        Mapbox popup. Class removal alone does NOT reset NCF's
+        internal selection, so the synthetic tap is required. ── */
   function dispatchTap(el, cx, cy) {
     var common = { bubbles: true, cancelable: true, clientX: cx, clientY: cy, view: window };
     try {
@@ -123,44 +139,41 @@
       if (!el) continue;
       if (el.closest('.cru-ncf-pin, .mapboxgl-marker')) continue; /* would select a pin */
       if (!el.closest('.mapboxgl-canvas-container, .mapboxgl-canvas, .mapboxgl-map')) continue;
-      dlog('auto-deselect: background tap at ' + Math.round(cx) + ',' + Math.round(cy));
+      dlog('deselect: background tap at ' + Math.round(cx) + ',' + Math.round(cy));
       deselecting = true;
       dispatchTap(el, cx, cy);
       setTimeout(function () { deselecting = false; }, 150);
       return true;
     }
-    dlog('auto-deselect: no free background spot found');
+    dlog('deselect: no free background spot found');
     return false;
   }
 
   function clearActivePins() {
     var stale = document.querySelectorAll('.cru-ncf-pin.active');
     if (stale.length) {
-      dlog('auto-deselect fallback: removing active class from ' + stale.length + ' pin(s)');
+      dlog('deselect fallback: removing active class from ' + stale.length + ' pin(s)');
       stale.forEach(function (p) { p.classList.remove('active'); });
     }
   }
 
-  function setupAutoDeselect() {
-    if (!IS_TOUCH) return;
-    var d = document.getElementById('dt-drawer');
-    if (!d) { setTimeout(setupAutoDeselect, 500); return; }
-    var was = d.classList.contains('is-active');
-    new MutationObserver(function () {
-      var is = d.classList.contains('is-active');
-      if (is !== was) {
-        dlog('DRAWER ' + (is ? 'OPEN' : 'CLOSE'));
-        if (!is) {
-          setTimeout(backgroundTap, 120);
-          /* Staggered fallback – NCF's recenter animation can
-             re-apply .active after the background tap. */
-          [350, 550, 800].forEach(function (ms) {
-            setTimeout(clearActivePins, ms);
-          });
-        }
-        was = is;
-      }
-    }).observe(d, { attributes: true, attributeFilter: ['class'] });
+  function deselect() {
+    backgroundTap();
+    /* Visual fallback if NCF re-applies .active during a recenter. */
+    [120, 300, 500].forEach(function (ms) { setTimeout(clearActivePins, ms); });
+  }
+
+  function hasActivePin() {
+    return !!document.querySelector('.cru-ncf-pin.active');
+  }
+
+  function activeSlug() {
+    var p = document.querySelector('.cru-ncf-pin.active');
+    if (!p) return null;
+    var c = [].slice.call(p.classList).find(function (x) {
+      return x.indexOf('ncf-slug-') === 0;
+    });
+    return c ? c.replace('ncf-slug-', '') : null;
   }
 
   function slugify(n) {
@@ -183,11 +196,20 @@
     return null;
   }
 
+  /* ── Open the drawer for a list item, with watchdog retries.
+        `delay` lets a preceding deselect settle before we click. ── */
+  function openLi(li, delay) {
+    guardUntil = Date.now() + 700;
+    pendingLi = li;
+    retried = false;
+    setTimeout(function () { li.click(); }, delay);
+    setTimeout(function () { watchdog(1); }, delay + 400);
+    setTimeout(function () { watchdog(2); }, delay + 840);
+  }
+
   function init() {
     var mapEl = document.querySelector('.ncf-map-wrapper,.cru-ncf-map,[class*="ncf-map"]');
     if (!mapEl) { setTimeout(init, 500); return; }
-
-    setupAutoDeselect();
 
     var x = 0, y = 0, pid = null, multi = false;
 
@@ -209,39 +231,56 @@
       if (multi || deselecting) return;
 
       var dx = e.clientX - x, dy = e.clientY - y;
-      if (Math.sqrt(dx * dx + dy * dy) > 14) return; /* pan, not a tap */
+      var moved = Math.sqrt(dx * dx + dy * dy);
 
+      /* PAN (not a tap): dismiss the persistent popup, if any. */
+      if (moved > 14) {
+        if (!drawerIsActive() && hasActivePin()) {
+          dlog('pan -> deselect');
+          deselect();
+        }
+        return;
+      }
+
+      /* TAP on a pin. */
       var pin = e.target.closest('.cru-ncf-pin');
-      if (!pin) return;
+      if (!pin) return; /* tap on empty map -> NCF deselects natively */
 
       var sc = null, cl = pin.classList;
       for (var i = 0; i < cl.length; i++) {
         if (cl[i].indexOf('ncf-slug-') === 0) { sc = cl[i]; break; }
       }
       if (!sc) return;
+      var slug = sc.replace('ncf-slug-', '');
 
-      var li = findItem(sc.replace('ncf-slug-', ''));
-      if (li) {
-        dlog('pin tap: ' + sc + ' -> opening');
-        guardUntil = Date.now() + 700;
-        pendingLi = li;
-        retried = false;
-        setTimeout(function () { li.click(); }, 60);
-        setTimeout(function () { watchdog(1); }, 460);
-        setTimeout(function () { watchdog(2); }, 900);
+      var li = findItem(slug);
+      if (!li) return;
+
+      /* Switching from a different active pin: deselect it first so
+         NCF doesn't consume this tap just to deselect the old one. */
+      var prev = activeSlug();
+      if (prev && prev !== slug) {
+        dlog('pin tap: switching ' + prev + ' -> ' + slug);
+        deselect();
+        openLi(li, 140);
+      } else {
+        dlog('pin tap: ' + slug + ' -> opening');
+        openLi(li, 60);
       }
     }, true);
 
-    /* Hide tooltips and popups on touch devices. */
+    /* Hide the hover TOOLTIP on touch (no hover state exists).
+       The click POPUP (.cru-ncf-pop-up / .mapboxgl-popup) stays
+       visible on purpose. */
     var s = document.createElement('style');
     s.id = 'dt-mobile-tap-fix-styles';
     s.textContent = '@media (hover:none) and (pointer:coarse){' +
       '.cru-ncf-tooltip,.ncf-tooltip-pop-up-wrapper,' +
-      '.ncf-tooltip-popup-inner-wrapper,.cru-ncf-pop-up' +
+      '.ncf-tooltip-popup-inner-wrapper' +
       '{display:none!important;}}';
     document.head.appendChild(s);
 
-    console.log('[DT] Mobile pin tap fix v1.3.0 active' + (DEBUG ? ' (debug)' : ''));
+    console.log('[DT] Mobile pin tap fix v1.4.0 active' + (DEBUG ? ' (debug)' : ''));
   }
 
   if (document.readyState === 'loading') {
