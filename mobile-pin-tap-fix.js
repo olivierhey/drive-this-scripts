@@ -1,10 +1,18 @@
 /**
  * Drive This – Mobile Pin Tap Fix
- * Version: 1.4.3 (2026-06-20)
+ * Version: 1.4.4 (2026-06-20)
  *
  * Touch only (desktop tap logic untouched). The active pin keeps its
  * native Mapbox popup after the drawer closes. Dismissal: tap another
  * pin or tap empty map. Panning keeps the popup (it follows the pin).
+ *
+ * Changes from 1.4.3:
+ *  - Old-drawer flash on switch fixed. The inline drawer's tooltip
+ *    scan (checkTooltipAndOpenDrawer, ~50ms after a pin tap) read the
+ *    OLD popup before our deselect tore it down and briefly reopened
+ *    the previous event. We now remove the old .mapboxgl-popup and any
+ *    active list item SYNCHRONOUSLY at tap time, before any inline
+ *    timer fires, so there is nothing stale left to reopen.
  *
  * Changes from 1.4.2:
  *  - Pin-to-pin switch fixed. NCF ignores a pin tap while another pin
@@ -237,13 +245,20 @@
       if (!li) return;
 
       /* If a DIFFERENT pin is selected, NCF ignores this tap. Force a
-         real deselect first, then open the new one once NCF is clean. */
+         real deselect first, then open the new one once NCF is clean.
+         Also strip the old popup + active list item SYNCHRONOUSLY so
+         the inline drawer's tooltip scan can't reopen the old event. */
       var prevPin = document.querySelector('.cru-ncf-pin.active');
       if (prevPin && !prevPin.classList.contains(sc)) {
         dlog('pin tap: switching -> ' + slug);
         prevPin.classList.remove('active'); /* instant visual shrink */
-        deselect();                          /* real NCF reset */
-        openLi(li, 110);                     /* open after NCF settles */
+        var oldPop = document.querySelector('.mapboxgl-popup');
+        if (oldPop && oldPop.parentNode) oldPop.parentNode.removeChild(oldPop);
+        document.querySelectorAll(
+          '.cru-ncf-map-list-item.active,.cru-ncf-map-list-item.is-active'
+        ).forEach(function (it) { it.classList.remove('active', 'is-active'); });
+        deselect();          /* real NCF reset so the new pin can select */
+        openLi(li, 110);     /* open after NCF settles */
       } else {
         dlog('pin tap: ' + slug + ' -> opening');
         openLi(li, 60);
@@ -251,7 +266,7 @@
     }, true);
 
     injectStyles();
-    console.log('[DT] Mobile pin tap fix v1.4.3 active' + (DEBUG ? ' (debug)' : ''));
+    console.log('[DT] Mobile pin tap fix v1.4.4 active' + (DEBUG ? ' (debug)' : ''));
   }
 
   if (document.readyState === 'loading') {
