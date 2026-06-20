@@ -1,18 +1,20 @@
 /**
  * Drive This – Mobile Pin Tap Fix
- * Version: 1.4.4 (2026-06-20)
+ * Version: 1.4.5 (2026-06-20)
  *
  * Touch only (desktop tap logic untouched). The active pin keeps its
  * native Mapbox popup after the drawer closes. Dismissal: tap another
  * pin or tap empty map. Panning keeps the popup (it follows the pin).
  *
- * Changes from 1.4.3:
- *  - Old-drawer flash on switch fixed. The inline drawer's tooltip
- *    scan (checkTooltipAndOpenDrawer, ~50ms after a pin tap) read the
- *    OLD popup before our deselect tore it down and briefly reopened
- *    the previous event. We now remove the old .mapboxgl-popup and any
- *    active list item SYNCHRONOUSLY at tap time, before any inline
- *    timer fires, so there is nothing stale left to reopen.
+ * Changes from 1.4.4:
+ *  - Old-drawer flash on switch fixed deterministically. Removing the
+ *    old popup synchronously wasn't enough: the inline drawer's click
+ *    AND touchend openers still read stale state (or NCF re-rendered
+ *    the old popup before the deselect landed). We now arm a short
+ *    guard at pointerdown when a pin is already selected and swallow
+ *    pin-targeted click/touchend in the capture phase for ~800ms, so
+ *    those openers can't fire. List-item clicks (our own li.click) and
+ *    empty-map taps pass through, so the new event still opens.
  *
  * Changes from 1.4.2:
  *  - Pin-to-pin switch fixed. NCF ignores a pin tap while another pin
@@ -67,6 +69,25 @@
 
   /* -- Guard + watchdog (drawer-open reliability) -- */
   var guardUntil = 0, pendingLi = null, retried = false, deselecting = false;
+
+  /* While switching pins, suppress the inline drawer's heuristic
+     openers (its click + touchend "open whatever looks selected"
+     handlers) so they can't reopen the OLD event. Pin-targeted click
+     and touchend are swallowed; list-item clicks (our own li.click)
+     and empty-map taps pass through untouched. */
+  var switching = 0;
+  function switchGuard(e) {
+    if (Date.now() >= switching) return;
+    var t = e.target;
+    if (!t || !t.closest) return;
+    if (t.closest('.cru-ncf-map-list-item, #dt-drawer, #dt-drawer-overlay')) return;
+    if (t.closest('.cru-ncf-pin, .mapboxgl-marker')) {
+      dlog('switchGuard blocked ' + e.type + ' on ' + describe(t));
+      e.stopImmediatePropagation();
+    }
+  }
+  document.addEventListener('click', switchGuard, true);
+  document.addEventListener('touchend', switchGuard, true);
 
   document.addEventListener('click', function (e) {
     if (Date.now() < guardUntil && e.isTrusted && e.target.closest &&
@@ -213,6 +234,11 @@
 
     mapEl.addEventListener('pointerdown', function (e) {
       if (e.pointerType !== 'touch') return;
+      /* A pin is already selected -> this touch may be a switch. Arm
+         the guard now (before click/touchend fire, whose order varies)
+         so the inline openers are suppressed for the gesture. Harmless
+         if it turns out to be a pan or empty tap. */
+      if (document.querySelector('.cru-ncf-pin.active')) switching = Date.now() + 800;
       if (pid !== null) { multi = true; return; } /* second finger = pinch */
       multi = false;
       pid = e.pointerId; x = e.clientX; y = e.clientY;
@@ -266,7 +292,7 @@
     }, true);
 
     injectStyles();
-    console.log('[DT] Mobile pin tap fix v1.4.4 active' + (DEBUG ? ' (debug)' : ''));
+    console.log('[DT] Mobile pin tap fix v1.4.5 active' + (DEBUG ? ' (debug)' : ''));
   }
 
   if (document.readyState === 'loading') {
