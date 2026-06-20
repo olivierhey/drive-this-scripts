@@ -1,6 +1,16 @@
 /**
  * Drive This – Mobile Pin Tap Fix
- * Version: 1.4.7 (2026-06-20)
+ * Version: 1.4.9 (2026-06-20)
+ *
+ * ROOT CAUSE fix for the wrong-content-on-switch bug. The v1.4.7 debug
+ * stamp revealed map=style.cru-ncf-map-settings: init()'s greedy
+ * [class*="ncf-map"] selector resolved the map element to a <style> tag,
+ * which receives no pointer events, so every mapEl pointerdown/pointerup
+ * handler was dead. That is why no "pin tap:" ever logged, the switch /
+ * deselect / open-new path never ran, and the drawer kept the previous
+ * pin's content (only window-bound guards worked). We now resolve the
+ * real interactive container via .mapboxgl-map and skip non-element
+ * hosts (style/script/link). Diagnostic UP-bail logs from 1.4.8 kept.
  *
  * Touch only (desktop tap logic untouched). The active pin keeps its
  * native Mapbox popup after the drawer closes. Dismissal: tap another
@@ -297,8 +307,24 @@
     document.head.appendChild(s);
   }
 
+  function resolveMapEl() {
+    /* The real interactive container is Mapbox's .mapboxgl-map (always a
+       div that contains the pins/markers). The old [class*="ncf-map"]
+       selector greedily matched <style class="cru-ncf-map-settings">, a
+       non-interactive element, so pointer handlers bound to it never
+       fired. Prefer .mapboxgl-map; fall back to ncf wrappers but skip
+       any non-element host (style/script/link). */
+    var el = document.querySelector('.mapboxgl-map');
+    if (el) return el;
+    var c = document.querySelectorAll('.ncf-map-wrapper,.cru-ncf-map,[class*="ncf-map"]');
+    for (var i = 0; i < c.length; i++) {
+      if (!/^(STYLE|SCRIPT|LINK|META)$/.test(c[i].tagName)) return c[i];
+    }
+    return null;
+  }
+
   function init() {
-    var mapEl = document.querySelector('.ncf-map-wrapper,.cru-ncf-map,[class*="ncf-map"]');
+    var mapEl = resolveMapEl();
     if (!mapEl) { setTimeout(init, 500); return; }
 
     var x = 0, y = 0, pid = null, multi = false;
@@ -321,25 +347,29 @@
 
     mapEl.addEventListener('pointerup', function (e) {
       if (e.pointerType !== 'touch') return;
-      if (e.pointerId !== pid) return;
+      if (e.pointerId !== pid) { dlog('UP bail: pointerId mismatch (pid=' + pid + ')'); return; }
       pid = null;
-      if (multi || deselecting) return;
+      if (multi || deselecting) { dlog('UP bail: multi/deselecting'); return; }
 
       var dx = e.clientX - x, dy = e.clientY - y;
-      if (Math.sqrt(dx * dx + dy * dy) > 14) return; /* pan -> popup stays, no open */
+      if (Math.sqrt(dx * dx + dy * dy) > 14) { dlog('UP bail: pan'); return; }
 
       var pin = e.target.closest('.cru-ncf-pin');
-      if (!pin) return; /* empty map -> NCF deselects natively */
+      if (!pin) { dlog('UP bail: no pin (' + describe(e.target) + ')'); return; }
 
       var sc = null, cl = pin.classList;
       for (var i = 0; i < cl.length; i++) {
         if (cl[i].indexOf('ncf-slug-') === 0) { sc = cl[i]; break; }
       }
-      if (!sc) return;
+      if (!sc) { dlog('UP bail: no ncf-slug class on ' + describe(pin)); return; }
       var slug = sc.replace('ncf-slug-', '');
 
       var li = findItem(slug);
-      if (!li) return;
+      if (!li) {
+        dlog('UP bail: findItem null for slug=' + slug +
+          ' (items=' + document.querySelectorAll('.cru-ncf-map-list-item').length + ')');
+        return;
+      }
 
       /* If a DIFFERENT pin is selected, NCF ignores this tap. Force a
          real deselect first, then open the new one once NCF is clean.
@@ -363,8 +393,8 @@
     }, true);
 
     injectStyles();
-    dlog('init OK — v1.4.7 active; map=' + describe(mapEl));
-    console.log('[DT] Mobile pin tap fix v1.4.7 active' + (DEBUG ? ' (debug)' : ''));
+    dlog('init OK — v1.4.9 active; map=' + describe(mapEl));
+    console.log('[DT] Mobile pin tap fix v1.4.9 active' + (DEBUG ? ' (debug)' : ''));
   }
 
   if (document.readyState === 'loading') {
