@@ -1,10 +1,23 @@
 /**
  * Drive This – Mobile Pin Tap Fix
- * Version: 1.4.5 (2026-06-20)
+ * Version: 1.4.6 (2026-06-20)
  *
  * Touch only (desktop tap logic untouched). The active pin keeps its
  * native Mapbox popup after the drawer closes. Dismissal: tap another
  * pin or tap empty map. Panning keeps the popup (it follows the pin).
+ *
+ * Changes from 1.4.5:
+ *  - Pin-to-pin switch flash fixed at the source. The trailing, browser-
+ *    synthesised compat click of the original touch lands on the freshly
+ *    rendered #dt-drawer-overlay (~250ms after touchend) and the inline
+ *    drawer closes on overlay click. The old guardUntil block used
+ *    stopPropagation, which does not stop Webflow's own close listener if
+ *    it sits in the same capture phase and runs first. We now arm a
+ *    dedicated overlay-close suppressor on WINDOW in the capture phase
+ *    (window-capture runs before any document-capture listener) for a
+ *    short window after each programmatic open, using
+ *    stopImmediatePropagation. The trailing overlay click is swallowed,
+ *    so the drawer no longer closes-then-reopens (no more watchdog flash).
  *
  * Changes from 1.4.4:
  *  - Old-drawer flash on switch fixed deterministically. Removing the
@@ -70,6 +83,34 @@
   /* -- Guard + watchdog (drawer-open reliability) -- */
   var guardUntil = 0, pendingLi = null, retried = false, deselecting = false;
 
+  /* -- Overlay-close suppressor --------------------------------------
+     After a programmatic open (openLi -> li.click), the browser still
+     fires the original touch's delayed compat click ~250ms later. By
+     then the new #dt-drawer-overlay sits under the finger, so that
+     trusted click hits the backdrop and the inline drawer closes ->
+     watchdog reopens -> visible flash on pin-to-pin switch.
+     We swallow overlay-targeted events for a short window after each
+     open. Registered on WINDOW in the capture phase so it runs before
+     any document-level / element-level close listener Webflow binds;
+     stopImmediatePropagation then prevents siblings in the same phase. */
+  var suppressOverlayUntil = 0;
+  function armOverlaySuppress(ms) {
+    suppressOverlayUntil = Date.now() + (ms || 650);
+  }
+  function overlayCloseGuard(e) {
+    if (Date.now() >= suppressOverlayUntil) return;
+    var t = e.target;
+    if (t && t.closest && t.closest('#dt-drawer-overlay') &&
+        !t.closest('#dt-drawer')) {
+      dlog('overlayCloseGuard blocked ' + e.type + ' on ' + describe(t));
+      e.stopImmediatePropagation();
+      e.preventDefault();
+    }
+  }
+  ['click', 'pointerup', 'touchend', 'pointerdown'].forEach(function (type) {
+    window.addEventListener(type, overlayCloseGuard, true);
+  });
+
   /* While switching pins, suppress the inline drawer's heuristic
      openers (its click + touchend "open whatever looks selected"
      handlers) so they can't reopen the OLD event. Pin-targeted click
@@ -93,7 +134,7 @@
     if (Date.now() < guardUntil && e.isTrusted && e.target.closest &&
         e.target.closest('#dt-drawer, #dt-drawer-overlay')) {
       dlog('GUARD blocked click on ' + describe(e.target));
-      e.stopPropagation();
+      e.stopImmediatePropagation();
       e.preventDefault();
     }
   }, true);
@@ -185,7 +226,12 @@
     guardUntil = Date.now() + 700;
     pendingLi = li;
     retried = false;
-    setTimeout(function () { li.click(); }, delay);
+    setTimeout(function () {
+      li.click();
+      /* The trailing compat click of the originating touch lands ~250ms
+         after touchend; cover it generously from the moment we open. */
+      armOverlaySuppress(650);
+    }, delay);
     setTimeout(function () { watchdog(1); }, delay + 400);
     setTimeout(function () { watchdog(2); }, delay + 840);
   }
@@ -292,7 +338,7 @@
     }, true);
 
     injectStyles();
-    console.log('[DT] Mobile pin tap fix v1.4.5 active' + (DEBUG ? ' (debug)' : ''));
+    console.log('[DT] Mobile pin tap fix v1.4.6 active' + (DEBUG ? ' (debug)' : ''));
   }
 
   if (document.readyState === 'loading') {
