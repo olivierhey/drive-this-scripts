@@ -1,10 +1,20 @@
 /**
  * Drive This – Mobile Pin Tap Fix
- * Version: 1.4.6 (2026-06-20)
+ * Version: 1.4.7 (2026-06-20)
  *
  * Touch only (desktop tap logic untouched). The active pin keeps its
  * native Mapbox popup after the drawer closes. Dismissal: tap another
  * pin or tap empty map. Panning keeps the popup (it follows the pin).
+ *
+ * Changes from 1.4.6:
+ *  - Overlay-close suppression no longer depends on openLi. The debug
+ *    trace showed our pointerup/open path is not reached for these taps
+ *    (no "pin tap:" log; the native Webflow pin->drawer opens it), so the
+ *    v1.4.6 guard window — armed inside openLi — never engaged and the
+ *    trailing #dt-drawer-overlay click still closed the drawer. We now
+ *    arm the window on EVERY pin tap via a standalone window-capture
+ *    listener, independent of the mapEl handler. Also stamps the running
+ *    version into the debug panel on init so the live build is verifiable.
  *
  * Changes from 1.4.5:
  *  - Pin-to-pin switch flash fixed at the source. The trailing, browser-
@@ -84,18 +94,20 @@
   var guardUntil = 0, pendingLi = null, retried = false, deselecting = false;
 
   /* -- Overlay-close suppressor --------------------------------------
-     After a programmatic open (openLi -> li.click), the browser still
-     fires the original touch's delayed compat click ~250ms later. By
-     then the new #dt-drawer-overlay sits under the finger, so that
-     trusted click hits the backdrop and the inline drawer closes ->
-     watchdog reopens -> visible flash on pin-to-pin switch.
-     We swallow overlay-targeted events for a short window after each
-     open. Registered on WINDOW in the capture phase so it runs before
-     any document-level / element-level close listener Webflow binds;
+     After ANY pin tap that opens a drawer (whether our openLi did it or
+     Webflow's native pin->drawer logic did), the browser still fires the
+     original touch's delayed compat click ~250ms later. By then the new
+     #dt-drawer-overlay sits under the finger, so that trusted click hits
+     the backdrop and the inline drawer closes -> flash.
+     v1.4.7: the suppression window is armed on EVERY pin tap, not only
+     when openLi runs, because the debug trace showed our pointerup/open
+     path is not always reached (native open) yet the flash still occurs.
+     The guard is on WINDOW in the capture phase so it runs before any
+     document-/element-level close listener Webflow binds;
      stopImmediatePropagation then prevents siblings in the same phase. */
   var suppressOverlayUntil = 0;
   function armOverlaySuppress(ms) {
-    suppressOverlayUntil = Date.now() + (ms || 650);
+    suppressOverlayUntil = Date.now() + (ms || 700);
   }
   function overlayCloseGuard(e) {
     if (Date.now() >= suppressOverlayUntil) return;
@@ -110,6 +122,19 @@
   ['click', 'pointerup', 'touchend', 'pointerdown'].forEach(function (type) {
     window.addEventListener(type, overlayCloseGuard, true);
   });
+
+  /* Arm the window on every pin tap, regardless of which code opens the
+     drawer. Independent of the mapEl pointerup handler so it still works
+     if that handler bails early (e.g. findItem miss -> native open). */
+  function armOnPinTap(e) {
+    var t = e.target;
+    if (t && t.closest && t.closest('.cru-ncf-pin, .mapboxgl-marker')) {
+      armOverlaySuppress(700);
+      dlog('armOverlaySuppress (pin ' + e.type + ')');
+    }
+  }
+  window.addEventListener('pointerup', armOnPinTap, true);
+  window.addEventListener('touchend', armOnPinTap, true);
 
   /* While switching pins, suppress the inline drawer's heuristic
      openers (its click + touchend "open whatever looks selected"
@@ -338,7 +363,8 @@
     }, true);
 
     injectStyles();
-    console.log('[DT] Mobile pin tap fix v1.4.6 active' + (DEBUG ? ' (debug)' : ''));
+    dlog('init OK — v1.4.7 active; map=' + describe(mapEl));
+    console.log('[DT] Mobile pin tap fix v1.4.7 active' + (DEBUG ? ' (debug)' : ''));
   }
 
   if (document.readyState === 'loading') {
