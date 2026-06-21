@@ -1,17 +1,7 @@
 /**
  * DRIVE THIS - Event Page Styles
- * Version: 1.0.1
+ * Version: 1.0.2
  */
-
-.meta-date {
-  display: block !important;
-}
-
-.sidebar-info-date,
-.date-bis,
-.sidebar-info-date-end {
-  display: inline !important;
-}
 
 /* ===========================================
    FAVORITE BUTTON
@@ -81,8 +71,8 @@
 
 .meta-date {
   display: flex !important;
-  align-items: center !important;
-  flex-wrap: wrap !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
   gap: 4px !important;
 }
 
