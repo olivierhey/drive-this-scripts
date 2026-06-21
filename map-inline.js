@@ -82,7 +82,7 @@
   /* ── Date / Location helpers ── */
   function formatDate(s, e) {
     if (!s) return '';
-    const o  = {day:'numeric',month:'long',year:'numeric'};
+    const o  = {day:'numeric',month:'short',year:'numeric'};
     const os = {day:'numeric',month:'short'};
     const st = new Date(s);
     if (!e || e === s) return st.toLocaleDateString('en-GB', o);
