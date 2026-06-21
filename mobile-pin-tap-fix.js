@@ -1,6 +1,19 @@
 /**
  * Drive This – Mobile Pin Tap Fix
- * Version: 1.4.9 (2026-06-20)
+ * Version: 1.5.0 (2026-06-21)
+ *
+ * Fixes the v1.4.9 switch failure (tapping a new pin reopened the
+ * previous pin's drawer; the old pin was never deselected). v1.4.9
+ * resolved the map element correctly to .mapboxgl-map, but NCF renders
+ * the pins in its own overlay layer that is NOT a descendant of
+ * .mapboxgl-map, so the pointer handlers bound to the map container
+ * never saw the pin taps and the switch / deselect / open-new path
+ * never ran. The pointerdown / pointerup / pointercancel handlers are
+ * now bound on DOCUMENT in the capture phase, with pointerdown gated on
+ * an .cru-ncf-pin target. This is structure-independent: it fires
+ * wherever the pins live. Synthetic deselect taps use pointerType
+ * 'mouse' and are ignored by the touch-only handlers. mapEl is kept
+ * only as an init readiness signal. Diagnostic logs retained.
  *
  * ROOT CAUSE fix for the wrong-content-on-switch bug. The v1.4.7 debug
  * stamp revealed map=style.cru-ncf-map-settings: init()'s greedy
@@ -329,25 +342,31 @@
 
     var x = 0, y = 0, pid = null, multi = false;
 
-    mapEl.addEventListener('pointerdown', function (e) {
+    /* Bind on DOCUMENT (capture), not on the map element. NCF renders the
+       pins (.cru-ncf-pin) in its own overlay layer, which is NOT always a
+       descendant of .mapboxgl-map — so a listener on the map container can
+       miss pin taps entirely (this was the v1.4.9 switch failure). Binding
+       on document with a pin-target gate is structure-independent: it fires
+       wherever the pins live. mapEl is kept only as a readiness signal. */
+    document.addEventListener('pointerdown', function (e) {
       if (e.pointerType !== 'touch') return;
+      if (!e.target.closest('.cru-ncf-pin')) return; /* only track pin touches */
       /* A pin is already selected -> this touch may be a switch. Arm
          the guard now (before click/touchend fire, whose order varies)
-         so the inline openers are suppressed for the gesture. Harmless
-         if it turns out to be a pan or empty tap. */
+         so the inline openers are suppressed for the gesture. */
       if (document.querySelector('.cru-ncf-pin.active')) switching = Date.now() + 800;
       if (pid !== null) { multi = true; return; } /* second finger = pinch */
       multi = false;
       pid = e.pointerId; x = e.clientX; y = e.clientY;
     }, true);
 
-    mapEl.addEventListener('pointercancel', function () {
+    document.addEventListener('pointercancel', function () {
       pid = null; multi = false;
     }, true);
 
-    mapEl.addEventListener('pointerup', function (e) {
+    document.addEventListener('pointerup', function (e) {
       if (e.pointerType !== 'touch') return;
-      if (e.pointerId !== pid) { dlog('UP bail: pointerId mismatch (pid=' + pid + ')'); return; }
+      if (e.pointerId !== pid) return; /* not a tracked pin-tap gesture */
       pid = null;
       if (multi || deselecting) { dlog('UP bail: multi/deselecting'); return; }
 
@@ -393,8 +412,8 @@
     }, true);
 
     injectStyles();
-    dlog('init OK — v1.4.9 active; map=' + describe(mapEl));
-    console.log('[DT] Mobile pin tap fix v1.4.9 active' + (DEBUG ? ' (debug)' : ''));
+    dlog('init OK — v1.5.0 active; map=' + describe(mapEl));
+    console.log('[DT] Mobile pin tap fix v1.5.0 active' + (DEBUG ? ' (debug)' : ''));
   }
 
   if (document.readyState === 'loading') {
