@@ -1,6 +1,9 @@
 /**
  * Drive This – Map Inline Logic
- * Version: 9.8
+ * Version: 9.9
+ *
+ * Changes from 9.8
+ *  - Date format changed to make it consistent
  *
  * Changes from 9.7 (mobile drawer reliability fix):
  *  - NEW setupPinTapHandler(): direct delegated pointer tap on pins.
