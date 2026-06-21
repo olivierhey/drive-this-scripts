@@ -113,19 +113,25 @@ if (window.DriveThisLoaded) {
   
   const PastEvent = {
     init() {
-      const endDateEl = document.querySelector('[data-event-end]');
-      if (!endDateEl) return;
+      const readDateAttr = (sel, attr) => {
+        const el = document.querySelector(sel);
+        const v = el ? el.getAttribute(attr) : '';
+        return (!v || v.includes('{{')) ? '' : v.trim();
+      };
 
-      const endDateStr = endDateEl.getAttribute('data-event-end');
-      if (!endDateStr || endDateStr.includes('{{')) return;
+      // End date if set, otherwise fall back to start date (single-day events)
+      const refStr = readDateAttr('[data-event-end]', 'data-event-end')
+                  || readDateAttr('[data-event-start]', 'data-event-start');
+      if (!refStr) return;
 
-      const endDate = new Date(endDateStr);
-      endDate.setHours(23, 59, 59, 999);
+      const refDate = new Date(refStr);
+      if (isNaN(refDate)) return;
+      refDate.setHours(23, 59, 59, 999);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      if (endDate >= today) return;
+      if (refDate >= today) return;
 
       const container = document.querySelector('.meta-date');
       if (!container) return;
