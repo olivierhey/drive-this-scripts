@@ -261,7 +261,7 @@ if (window.DriveThisLoaded) {
         const vimeoId = this.getVimeoId(url);
 
         if (ytId) {
-          embedUrl = `https://www.youtube.com/embed/${ytId}?rel=0`;
+          embedUrl = `https://www.youtube-nocookie.com/embed/${ytId}?rel=0`;
         } else if (vimeoId) {
           embedUrl = `https://player.vimeo.com/video/${vimeoId}`;
         }
