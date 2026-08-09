@@ -4,9 +4,9 @@ styleEl.textContent=`.dt-article-badge{position:absolute;left:-1px;padding:5px 9
 document.head.appendChild(styleEl);
 
 const typeStyles={
-  'Field Report':   {bg:'#4fd8ff80', color:'#003d4d'},
-  'Roadtrip Guide': {bg:'#ff573380', color:'#4d1200'},
-  'Event Preview':  {bg:'#e8ff4780', color:'#3a4000'}
+  'Field Report':   {bg:'#4fd8ff80', color:'#fff'},
+  'Roadtrip Guide': {bg:'#ff573380', color:'#fff'},
+  'Event Preview':  {bg:'#e8ff4780', color:'#fff'}
 };
             
 function positionBadges(item){
@@ -22,7 +22,7 @@ function injectArticleBadges(){
     const type=item.dataset.eventArticleType;
     if(!slug||!type)return;
     if(!item.querySelector('.dt-article-badge')){
-      const s=typeStyles[type]||{bg:'#4fd8ff80',color:'#003d4d'};
+      const s=typeStyles[type]||{bg:'#4fd8ff80',color:'#fff'};
       const b=document.createElement('a');
       b.className='dt-article-badge';
       b.href=`/articles/${slug}`;
