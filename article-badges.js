@@ -3,8 +3,12 @@ const styleEl=document.createElement('style');
 styleEl.textContent=`.dt-article-badge{position:absolute;left:-1px;padding:5px 9px;border-radius:4px;font-size:12px;font-weight:400;line-height:1;white-space:nowrap;z-index:9;text-decoration:none;pointer-events:auto;display:inline-block}.dt-article-badge:hover{opacity:.85}`;
 document.head.appendChild(styleEl);
 
-const typeStyles={'Field Report':{bg:'#4fd8ff',color:'#003d4d'},'Roadtrip Guide':{bg:'#ff5733',color:'#fff'},'Event Preview':{bg:'#e8ff47',color:'#3a4000'}};
-
+const typeStyles={
+  'Field Report':   {bg:'#4fd8ff80', color:'#003d4d'},
+  'Roadtrip Guide': {bg:'#ff573380', color:'#4d1200'},
+  'Event Preview':  {bg:'#e8ff4780', color:'#3a4000'}
+};
+            
 function positionBadges(item){
   const article=item.querySelector('.dt-article-badge');
   if(!article)return;
@@ -18,7 +22,7 @@ function injectArticleBadges(){
     const type=item.dataset.eventArticleType;
     if(!slug||!type)return;
     if(!item.querySelector('.dt-article-badge')){
-      const s=typeStyles[type]||{bg:'#4fd8ff',color:'#003d4d'};
+      const s=typeStyles[type]||{bg:'#4fd8ff80',color:'#003d4d'};
       const b=document.createElement('a');
       b.className='dt-article-badge';
       b.href=`/articles/${slug}`;
