@@ -1,0 +1,79 @@
+/* map-inline.css
+   Ausgelagert aus dem Before-</body>-Feld der Map-Seite, 11.08.2026.
+   Wird an exakt derselben Stelle eingebunden wie vorher der <style>-Block,
+   also VOR map-page.css. Reihenfolge nicht vertauschen, sonst kippen
+   Regeln, die sich mit map-page.css ueberschneiden.
+*/
+
+.dt-drawer{transition:none!important}
+.dt-article-badge{color:#ffffff!important}
+.cru-ncf-tooltip{pointer-events:none!important}
+.ncf-tooltip-pop-up-wrapper{pointer-events:none!important}
+.dt-transitions-ready .dt-drawer{transition:transform 0.35s cubic-bezier(0.32,0.72,0,1)!important}
+@media(max-width:767px){body{background-color:#000!important}
+.dt-drawer-actions{padding:16px 33px max(24px,env(safe-area-inset-bottom,24px))!important;background:#fff!important;margin:0 -1px}
+.dt-drawer{background:#fff!important;overflow:hidden!important}
+.dt-drawer:not(.is-active) .dt-drawer-actions,.dt-drawer:not(.is-active) .dt-drawer-body{visibility:hidden}
+}
+.dt-weather-badge{position:absolute;bottom:20px;right:20px;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.dt-weather-badge img{width:56px;height:56px;filter:brightness(0) invert(1)}
+.dt-weather-temp{color:#fff;font-size:.9rem;font-weight:500;line-height:1;text-align:center;padding-top:5px}
+.dt-drawer-price{font-weight:400;letter-spacing:.1em}
+.dt-drawer-price .price-active{color:#000}
+.dt-drawer-price .price-inactive{color:rgba(0,0,0,.2)}
+.dt-drawer-close:focus,.dt-drawer-close:focus-visible,.dt-drawer-favorite:focus,.dt-drawer-favorite:focus-visible{outline:none;box-shadow:none}
+.dt-list-heart{position:absolute;top:14px;right:18px;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.dt-list-heart.is-visible{opacity:1}
+.dt-list-heart svg{display:block}
+.dt-drawer-favorite{color:#000}
+.dt-drawer-favorite.is-favorited{color:#FF9900}
+.dt-drawer-social .directions:hover svg path{stroke:#018000!important}
+.dt-drawer-offer-info{background:#161616;border-radius:8px;padding:14px 16px;margin-bottom:5px;display:flex;align-items:flex-start;gap:10px;color:#fff}
+.dt-drawer-offer-info svg{flex-shrink:0;width:22px;height:22px;margin-top:-2px;margin-left:-2px}
+.dt-offer-content{flex:1;display:flex;flex-direction:column;gap:6px}
+.dt-offer-title{font-weight:300;font-size:1rem}
+.dt-offer-text{font-size:1rem;line-height:1.2;font-weight:300;display:none!important}
+.dt-offer-link{display:inline-flex;align-items:center;gap:2px;color:#FFF;font-weight:300;line-height:1.2;text-decoration:none;font-size:.8rem;transition:gap .2s ease}
+.dt-offer-link:hover{gap:5px;text-decoration:none}
+.dt-offer-link svg{width:14px;height:14px;margin-top:2px}
+.dt-drawer-past-badge-inline{display:inline-block;background:#000;color:#fff;padding:4px 8px;border-radius:4px;font-size:10px;font-weight:500;margin-left:0;white-space:nowrap;line-height:1.2;margin-top:-2px}
+#dt-drawer-date.is-past>span:not(#dt-drawer-past-badge){text-decoration:line-through;opacity:1}
+.ncf-filter-chip.active{background-color:#fff;font-size:1rem;font-weight:400;color:#000}
+.cru-ncf-pin.is-favorite-pin{width:26px!important;height:24px!important;margin-left:-12px!important;background-size:contain!important;background-position:center!important;background-repeat:no-repeat!important;border-radius:50%;margin-top:-5px;margin-left:5px!important}
+.cru-ncf-pin{transition:transform .3s cubic-bezier(.34,1.56,.64,1);margin-top:-5px;margin-left:5px!important}
+.cru-ncf-pin.is-past-event{opacity:0.3;}
+@keyframes favoritePopIn{0%{transform:scale(.3);opacity:0}
+50%{transform:scale(1.3)}
+70%{transform:scale(.9)}
+100%{transform:scale(1);opacity:1}
+}
+@keyframes unfavoriteShrink{0%{transform:scale(1);opacity:1}
+40%{transform:scale(.5);opacity:0}
+50%{transform:scale(.3);opacity:0}
+100%{transform:scale(1);opacity:1}
+}
+.cru-ncf-pin.animate-favorite{animation:favoritePopIn .4s cubic-bezier(.34,1.56,.64,1) forwards}
+.cru-ncf-pin.animate-unfavorite{animation:unfavoriteShrink .35s ease-out forwards}
+@keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(255,153,0,.7)!important}
+50%{box-shadow:0 0 0 8px rgba(255,153,0,.4)!important}
+100%{box-shadow:0 0 0 16px rgba(255,153,0,0)!important}
+}
+.cru-ncf-pin.pulse-ring,.cru-ncf-pin.is-favorite-pin.pulse-ring,div.cru-ncf-pin.pulse-ring,.cru-ncf-pin.pulse-ring.animate-favorite{animation:pulseRing .6s ease-out!important;animation-fill-mode:none!important;box-shadow:0 0 0 0 rgba(255,153,0,.7)!important}
+.cru-ncf-pin.active{z-index:700;position:relative;margin-top:-5px;margin-left:5px!important}
+@media(hover:hover){.cru-ncf-pin:hover{transform:scale(1.2)!important;cursor:pointer}
+}
+.dt-upcoming-badge{position:absolute;top:-30px;left:-1px;z-index:10;padding:5px 9px;border-radius:4px;font-size:12px;font-weight:400;line-height:1;pointer-events:none}
+.badge-happening,.badge-today,.badge-tomorrow,.badge-week{background:#ffffff6b;color:#ffffff}
+.event-happening,.event-today,.event-tomorrow,.event-this-week{outline:4px solid #ffffff6b!important;outline-offset:0}
+.dt-favorites-filter{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(255,255,255,.1);border:0;border-radius:4px;color:#fff;font-size:14px;font-weight:500;cursor:pointer;transition:all .3s ease;user-select:none;white-space:nowrap;height:44px}
+.dt-favorites-filter:hover{background:rgba(255,255,255,.15)}
+.dt-favorites-filter.active{background:#FFF;color:#000}
+.dt-favorites-filter svg{width:16px;height:16px;flex-shrink:0}
+.dt-favorites-filter svg path{transition:fill .3s ease}
+.dt-favorites-filter.active svg path{fill:#fff}
+.dt-favorites-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:rgba(255,255,255,.2);border-radius:10px;font-size:12px;font-weight:500;line-height:1}
+.dt-favorites-filter.active .dt-favorites-count{background:rgba(255,255,255,.3)}
+.cru-ncf-map-list-item.dt-filtered-out{display:none!important}
+.cru-ncf-pin.dt-filtered-out{display:none!important}
+.ncf-tooltip-popup-inner-wrapper,.cru-ncf-tooltip,.cru-ncf-pop-up{pointer-events:none!important}
+#dt-drawer-category-svg{width:16px;height:16px;flex-shrink:0}
