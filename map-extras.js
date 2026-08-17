@@ -167,8 +167,8 @@ if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded'
 
     const notice = document.createElement('div');
     notice.id = NOTICE_ID;
-    notice.style.cssText = 'display:flex; align-items:center; gap:6px; margin:0; font-size:0.9rem; color:inherit; opacity:0.3; padding-left:28px;';
-    notice.textContent = 'Next edition: 2027 – Dates TBA';
+    notice.style.cssText = 'display:flex; align-items:center; gap:6px; margin:0; font-weight: 400; font-family: Sonnygothiccondensed, Arial, sans-serif; font-size:13px; color: var(--dt-text-almost-blk); padding-left:34px;';
+    notice.textContent = 'Next edition: Dates TBA';
 
     dateBlock.insertAdjacentElement('afterend', notice);
   }
