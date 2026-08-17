@@ -25,8 +25,8 @@
 .dt-list-heart{position:absolute;top:14px;right:18px;opacity:0;pointer-events:none;transition:opacity .2s ease}
 .dt-list-heart.is-visible{opacity:1}
 .dt-list-heart svg{display:block}
-.dt-drawer-favorite{color:#000}
-.dt-drawer-favorite.is-favorited{color:#FF9900}
+.dt-drawer-favorite{color:#fff}
+.dt-drawer-favorite.is-favorited{color:#fff}
 .dt-drawer-social .directions:hover svg path{stroke:#018000!important}
 .dt-drawer-offer-info{background:#393939;border-radius:8px;padding:24px;margin-top:16px;display:flex;align-items:flex-start;gap:8px;color:#fff;width: 50%}
 .dt-drawer-offer-info svg{flex-shrink:0;width:22px;height:22px;margin-top:-2px;display:none}
