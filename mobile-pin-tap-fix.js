@@ -1,7 +1,11 @@
 /**
  * Drive This – Mobile Pin Tap Fix
- * Version: 1.5.0 (2026-06-21)
+ * Version: 1.5.1 (2026-09-04)
  *
+ * 1.5.1: active-pin styles reduced to the single ring variant (featured
+ * pins and the "27" past glyph are retired, see map-inline.css / pin-colors.js).
+ *
+ * 1.5.0 (2026-06-21):
  * Fixes the v1.4.9 switch failure (tapping a new pin reopened the
  * previous pin's drawer; the old pin was never deselected). v1.4.9
  * resolved the map element correctly to .mapboxgl-map, but NCF renders
@@ -284,9 +288,12 @@
     setTimeout(function () { watchdog(2); }, delay + 840);
   }
 
-  /* -- Active-pin highlight: white versions of the three pin SVGs.
-        Mirrors pin-colors.js / featured-pins.js shapes, recoloured to
-        white; .active-only overrides, the colour scripts are untouched. -- */
+  /* -- Active-pin highlight: white version of the country-ring pin.
+        v1.5.1: featured and "27" past variants removed. Saved pins keep
+        the ring (the bookmark is a CSS pseudo-element in map-inline.css),
+        past pins get the same white ring at full opacity while active.
+        Repeated class raises specificity above the per-slug rules that
+        pin-colors.js injects, independent of style-tag order. -- */
   function uri(svg) {
     return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
   }
@@ -294,14 +301,6 @@
   var SVG_NORMAL =
     '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">' +
     '<circle cx="10" cy="10" r="8" fill="#2a2a3a" stroke="' + W + '" stroke-width="3"/></svg>';
-  var SVG_FEATURED =
-    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-    '<circle cx="12" cy="12" r="11" fill="' + W + '"/></svg>';
-  var SVG_PAST =
-    '<svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-    '<g clip-path="url(#c2)"><path d="M14.5 8.5C14.5 5.18629 11.8137 2.5 8.5 2.5C5.18629 2.5 2.5 5.18629 2.5 8.5C2.5 11.8137 5.18629 14.5 8.5 14.5V17C3.80558 17 0 13.1944 0 8.5C0 3.80558 3.80558 0 8.5 0C13.1944 0 17 3.80558 17 8.5C17 13.1944 13.1944 17 8.5 17V14.5C11.8137 14.5 14.5 11.8137 14.5 8.5Z" fill="' + W + '"/>' +
-    '<path d="M6.41504 5.3916C7.65506 5.3916 8.48219 6.0624 8.48242 7.06836C8.48242 7.65336 8.22494 8.07497 7.81934 8.54297L6.82129 9.68164H8.51367V11H4.27832V10.2822L6.40723 7.84082C6.60223 7.62242 6.69629 7.4118 6.69629 7.2168C6.69621 6.99081 6.54806 6.84292 6.27539 6.84277C6.01799 6.84277 5.85337 6.99067 5.75977 7.26367H4.2002C4.36401 6.06265 5.13609 5.39173 6.41504 5.3916ZM13.1562 6.39844L10.957 11H9.10059L11.0977 6.94434H8.83496V5.54004H13.1562V6.39844Z" fill="' + W + '"/></g>' +
-    '<defs><clipPath id="c2"><rect width="17" height="17" fill="white"/></clipPath></defs></svg>';
 
   function injectStyles() {
     var s = document.createElement('style');
@@ -310,12 +309,9 @@
       '@media (hover:none) and (pointer:coarse){',
       '.cru-ncf-tooltip,.ncf-tooltip-pop-up-wrapper,.ncf-tooltip-popup-inner-wrapper',
       '{display:none!important;}}',
-      '.cru-ncf-pin.active[ncf-pinstyle="default"]:not(.is-favorite-pin):not(.is-past-event):not([data-dt-styled])',
-      '{background-image:' + uri(SVG_NORMAL) + '!important;}',
-      '.cru-ncf-pin.active[ncf-pinstyle="default"]:not(.is-favorite-pin):not(.is-past-event)[data-dt-styled]',
-      '{background-image:' + uri(SVG_FEATURED) + '!important;}',
-      '.cru-ncf-pin.active.is-past-event:not(.is-favorite-pin):not(.dt-filtered-out)',
-      '{background-image:' + uri(SVG_PAST) + '!important;opacity:1!important;}'
+      '.cru-ncf-pin.cru-ncf-pin.cru-ncf-pin.active[ncf-pinstyle="default"],',
+      '.cru-ncf-pin.cru-ncf-pin.cru-ncf-pin.active[ncf-pinstyle="default"].is-past-event',
+      '{background-image:' + uri(SVG_NORMAL) + '!important;opacity:1!important;}'
     ].join('\n');
     document.head.appendChild(s);
   }
@@ -412,8 +408,8 @@
     }, true);
 
     injectStyles();
-    dlog('init OK — v1.5.0 active; map=' + describe(mapEl));
-    console.log('[DT] Mobile pin tap fix v1.5.0 active' + (DEBUG ? ' (debug)' : ''));
+    dlog('init OK — v1.5.1 active; map=' + describe(mapEl));
+    console.log('[DT] Mobile pin tap fix v1.5.1 active' + (DEBUG ? ' (debug)' : ''));
   }
 
   if (document.readyState === 'loading') {
