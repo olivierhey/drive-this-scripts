@@ -4,6 +4,7 @@
    also VOR map-page.css. Reihenfolge nicht vertauschen, sonst kippen
    Regeln, die sich mit map-page.css ueberschneiden.
 
+   v3.0.2 (04.09.2026): Timeline-Card-Bookmark ohne Schatten (Icon schwarz gefuellt, kommt aus dem Drawer-Script).
    v3.0.0 (04.09.2026)
    - Herz -> Bookmark (Pins, Timeline-Cards, Drawer, Saved-Filter)
    - Featured-Pins entfernt; die globalen Pin-Regeln, die vorher das
@@ -33,7 +34,7 @@
 .dt-drawer-close:focus,.dt-drawer-close:focus-visible,.dt-drawer-favorite:focus,.dt-drawer-favorite:focus-visible{outline:none;box-shadow:none}
 
 /* Timeline-Card: Bookmark oben rechts, nur sichtbar wenn gespeichert */
-.dt-list-saved{position:absolute;top:14px;right:18px;opacity:0;pointer-events:none;transition:opacity .2s ease;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.dt-list-saved{position:absolute;top:14px;right:18px;opacity:0;pointer-events:none;transition:opacity .2s ease}
 .dt-list-saved.is-visible{opacity:1}
 .dt-list-saved svg{display:block}
 
