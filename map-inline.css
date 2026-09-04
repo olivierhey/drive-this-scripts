@@ -3,6 +3,15 @@
    Wird an exakt derselben Stelle eingebunden wie vorher der <style>-Block,
    also VOR map-page.css. Reihenfolge nicht vertauschen, sonst kippen
    Regeln, die sich mit map-page.css ueberschneiden.
+
+   v3.0.0 (04.09.2026)
+   - Herz -> Bookmark (Pins, Timeline-Cards, Drawer, Saved-Filter)
+   - Featured-Pins entfernt; die globalen Pin-Regeln, die vorher das
+     Inline-Featured-Script injiziert hat (18px / 22px active, cursor,
+     overflow, Hit-Area), leben jetzt hier.
+   - Saved Pin = normaler Laenderring + Bookmark (::after) oben rechts.
+   - Past-Pins: Fade kommt aus dem SVG (pin-colors.js), nicht mehr via opacity,
+     damit das Bookmark auf einem gespeicherten Past-Event deckend bleibt.
 */
 
 .dt-drawer{transition:none!important}
@@ -22,11 +31,16 @@
 .dt-drawer-price .price-active{color:#000}
 .dt-drawer-price .price-inactive{color:rgba(0,0,0,.2)}
 .dt-drawer-close:focus,.dt-drawer-close:focus-visible,.dt-drawer-favorite:focus,.dt-drawer-favorite:focus-visible{outline:none;box-shadow:none}
-.dt-list-heart{position:absolute;top:14px;right:18px;opacity:0;pointer-events:none;transition:opacity .2s ease}
-.dt-list-heart.is-visible{opacity:1}
-.dt-list-heart svg{display:block}
+
+/* Timeline-Card: Bookmark oben rechts, nur sichtbar wenn gespeichert */
+.dt-list-saved{position:absolute;top:14px;right:18px;opacity:0;pointer-events:none;transition:opacity .2s ease;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.dt-list-saved.is-visible{opacity:1}
+.dt-list-saved svg{display:block}
+
+/* Drawer: Save-Pill (Basis-Styles im Site-Head, hier nur die Map-Overrides) */
 .dt-drawer-favorite{color:#fff}
-.dt-drawer-favorite.is-favorited{color:#ff9900}
+.dt-drawer-favorite.is-favorited{color:#fff}
+
 .dt-drawer-social .directions:hover svg path{stroke:#018000!important}
 .dt-drawer-offer-info{background:#393939;border-radius:8px;padding:24px;margin-top:16px;display:flex;align-items:flex-start;gap:8px;color:#fff;width: 50%}
 .dt-drawer-offer-info svg{flex-shrink:0;width:22px;height:22px;margin-top:-2px;display:none}
@@ -39,40 +53,47 @@
 .dt-drawer-past-badge-inline{display:inline-block;background:#000;color:#fff;padding:4px 8px;border-radius:4px;font-size:9px;font-weight:500;margin-left:0;white-space:nowrap;line-height:1.2;margin-top:-3px}
 #dt-drawer-date.is-past>span:not(#dt-drawer-past-badge){text-decoration:line-through;opacity:1}
 .ncf-filter-chip.active{background-color:#fff;font-size:1rem;font-weight:400;color:#000}
-.cru-ncf-pin.is-favorite-pin{width:26px!important;height:24px!important;margin-left:-12px!important;background-size:contain!important;background-position:center!important;background-repeat:no-repeat!important;border-radius:50%;margin-top:-5px;margin-left:5px!important}
-.cru-ncf-pin{transition:transform .3s cubic-bezier(.34,1.56,.64,1);margin-top:-5px;margin-left:5px!important}
-.cru-ncf-pin.is-past-event{opacity:0.3;}
-@keyframes favoritePopIn{0%{transform:scale(.3);opacity:0}
+
+/* ── Pins: globale Regeln (vorher im Inline-Featured-Script) ── */
+.mapboxgl-marker{overflow:visible!important}
+.cru-ncf-pin{cursor:pointer!important;overflow:visible!important;transition:transform .3s cubic-bezier(.34,1.56,.64,1);margin-top:-5px;margin-left:5px!important}
+.cru-ncf-pin[ncf-pinstyle="default"]{width:18px!important;height:18px!important;border-radius:50%;background-size:contain!important;background-position:center!important;background-repeat:no-repeat!important}
+.cru-ncf-pin[ncf-pinstyle="default"].active{width:22px!important;height:22px!important}
+.cru-ncf-pin[ncf-pinstyle="default"]::before{content:'';position:absolute;top:-10px;left:-4px;right:-4px;height:14px;background:transparent}
+.cru-ncf-pin.active{z-index:700;position:relative;margin-top:-5px;margin-left:5px!important}
+@media(hover:hover){.cru-ncf-pin:hover{transform:scale(1.2)!important;cursor:pointer}
+}
+.mapboxgl-marker [class*="tooltip"],.mapboxgl-marker [class*="ncf-tip"],.mapboxgl-marker [class*="popup"],.mapboxgl-marker [class*="label"]{pointer-events:none!important}
+
+/* ── Saved Pin: Laenderring bleibt, Bookmark (8x8 bei 18px) oben rechts ── */
+.cru-ncf-pin.is-favorite-pin,.cru-ncf-pin.animate-unfavorite{position:relative}
+.cru-ncf-pin.is-favorite-pin::after,.cru-ncf-pin.animate-unfavorite::after{content:'';position:absolute;top:-9%;right:-7%;width:44%;height:44%;background:url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Cpath d=%22M17.25 3H6.75C6.35218 3 5.97064 3.15804 5.68934 3.43934C5.40804 3.72064 5.25 4.10218 5.25 4.5V21C5.25007 21.1338 5.28595 21.2652 5.35393 21.3805C5.42191 21.4958 5.5195 21.5908 5.63659 21.6557C5.75367 21.7206 5.88598 21.7529 6.01978 21.7494C6.15358 21.7458 6.284 21.7066 6.3975 21.6356L12 18.1341L17.6034 21.6356C17.7169 21.7063 17.8472 21.7454 17.9809 21.7488C18.1146 21.7522 18.2467 21.7198 18.3636 21.655C18.4806 21.5902 18.5781 21.4953 18.646 21.3801C18.7139 21.2649 18.7498 21.1337 18.75 21V4.5C18.75 4.10218 18.592 3.72064 18.3107 3.43934C18.0294 3.15804 17.6478 3 17.25 3Z%22 fill=%22%23ffffff%22 stroke=%22%231a1a1a%22 stroke-width=%224%22 stroke-linejoin=%22round%22 paint-order=%22stroke%22/%3E%3C/svg%3E") center/contain no-repeat;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.45));transform-origin:50% 50%}
+@keyframes dtSavePop{0%{transform:scale(.3);opacity:0}
 50%{transform:scale(1.3)}
 70%{transform:scale(.9)}
 100%{transform:scale(1);opacity:1}
 }
-@keyframes unfavoriteShrink{0%{transform:scale(1);opacity:1}
-40%{transform:scale(.5);opacity:0}
-50%{transform:scale(.3);opacity:0}
-100%{transform:scale(1);opacity:1}
+@keyframes dtUnsaveShrink{0%{transform:scale(1);opacity:1}
+100%{transform:scale(.3);opacity:0}
 }
-.cru-ncf-pin.animate-favorite{animation:favoritePopIn .4s cubic-bezier(.34,1.56,.64,1) forwards}
-.cru-ncf-pin.animate-unfavorite{animation:unfavoriteShrink .35s ease-out forwards}
-@keyframes pulseRing{0%{box-shadow:0 0 0 0 rgba(255,153,0,.7)!important}
-50%{box-shadow:0 0 0 8px rgba(255,153,0,.4)!important}
-100%{box-shadow:0 0 0 16px rgba(255,153,0,0)!important}
+@keyframes dtPulseRing{0%{box-shadow:0 0 0 0 rgba(255,255,255,.6)}
+100%{box-shadow:0 0 0 12px rgba(255,255,255,0)}
 }
-.cru-ncf-pin.pulse-ring,.cru-ncf-pin.is-favorite-pin.pulse-ring,div.cru-ncf-pin.pulse-ring,.cru-ncf-pin.pulse-ring.animate-favorite{animation:pulseRing .6s ease-out!important;animation-fill-mode:none!important;box-shadow:0 0 0 0 rgba(255,153,0,.7)!important}
-.cru-ncf-pin.active{z-index:700;position:relative;margin-top:-5px;margin-left:5px!important}
-@media(hover:hover){.cru-ncf-pin:hover{transform:scale(1.2)!important;cursor:pointer}
-}
+.cru-ncf-pin.animate-favorite::after{animation:dtSavePop .4s cubic-bezier(.34,1.56,.64,1) both}
+.cru-ncf-pin.animate-favorite{animation:dtPulseRing .6s ease-out}
+.cru-ncf-pin.animate-unfavorite::after{animation:dtUnsaveShrink .25s ease-in both}
+
 .dt-upcoming-badge{position:absolute;top:-30px;left:-1px;z-index:10;padding:5px 9px;border-radius:4px;font-size:12px;font-weight:400;line-height:1;pointer-events:none}
 .badge-happening,.badge-today,.badge-tomorrow,.badge-week{background:#ffffff6b;color:#ffffff}
 .event-happening,.event-today,.event-tomorrow,.event-this-week{outline:4px solid #ffffff6b!important;outline-offset:0}
-.dt-favorites-filter{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:rgba(255,255,255,.1);border:0;border-radius:4px;color:#fff;font-size:14px;font-weight:500;cursor:pointer;transition:all .3s ease;user-select:none;white-space:nowrap;height:44px}
+
+/* ── Saved-Filter-Chip ── */
+.dt-favorites-filter{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:rgba(255,255,255,.1);border:0;border-radius:4px;color:#fff;font-size:14px;font-weight:500;cursor:pointer;transition:all .3s ease;user-select:none;white-space:nowrap;height:44px}
 .dt-favorites-filter:hover{background:rgba(255,255,255,.15)}
 .dt-favorites-filter.active{background:#FFF;color:#000}
-.dt-favorites-filter svg{width:16px;height:16px;flex-shrink:0}
-.dt-favorites-filter svg path{transition:fill .3s ease}
-.dt-favorites-filter.active svg path{fill:#fff}
+.dt-favorites-filter svg{width:18px;height:18px;flex-shrink:0;display:block}
 .dt-favorites-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;background:rgba(255,255,255,.2);border-radius:10px;font-size:12px;font-weight:500;line-height:1}
-.dt-favorites-filter.active .dt-favorites-count{background:rgba(255,255,255,.3)}
+.dt-favorites-filter.active .dt-favorites-count{background:rgba(0,0,0,.1)}
 .cru-ncf-map-list-item.dt-filtered-out{display:none!important}
 .cru-ncf-pin.dt-filtered-out{display:none!important}
 .ncf-tooltip-popup-inner-wrapper,.cru-ncf-tooltip,.cru-ncf-pop-up{pointer-events:none!important}
