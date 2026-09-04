@@ -1,7 +1,9 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.5.0 (2026-09-04)
- * Save button: heart -> bookmark. The button holds an outline and a filled
+ * Version: 1.5.1 (2026-09-04)
+ * Weather: forecast moved from OpenWeatherMap (key-bound, failed silently with
+ * a rejected key) to Open-Meteo, same source as the historical average. No key.
+ * 1.5.0: Save button: heart -> bookmark. The button holds an outline and a filled
  * SVG, event-page.css switches them via .is-favorited; the script only
  * toggles the class and the labels. Storage key dt_favorites unchanged.
  * 1.4.0: Weather widget now shows for ongoing events (uses end date)
@@ -303,12 +305,12 @@ if (window.DriveThisLoaded) {
   // WEATHER WIDGET
   // Read data-lat, data-lng, data-date, data-end from #dt-event-weather-trigger
   // Renders into #dt-page-weather
-  // v1.4.0 FIX: Shows weather for ongoing events; falls back to start date
-  //             if no end date (single-day events)
+  // Forecast (<= 5 days ahead): Open-Meteo forecast API, value at 12:00 local
+  // time of the event day, daily max as fallback. Further out: Open-Meteo
+  // archive, three-year average for the date.
   // ===========================================
 
   const Weather = {
-    API_KEY: 'e5472fae42c64a6f3aae2820d281c8b9',
 
     icons: {
       sun: 'https://cdn.prod.website-files.com/68e3e655c503674ccf7c17f2/693b21c3c8fef0fee1f6d3a2_sun.svg',
@@ -340,6 +342,7 @@ if (window.DriveThisLoaded) {
       if (c >= 51 && c <= 67) return 'rain';
       if (c >= 71 && c <= 77) return 'snow';
       if (c >= 80 && c <= 82) return 'sun-rain';
+      if (c >= 85 && c <= 86) return 'snow';
       if (c >= 95) return 'storm';
       return 'sun';
     },
@@ -361,26 +364,33 @@ if (window.DriveThisLoaded) {
       DT.log(`Weather rendered: ${temp}°C (${label})`);
     },
 
-    async fetchForecast(lat, lng, daysAhead) {
+    async fetchForecast(lat, lng, targetDate) {
+      const p = n => String(n).padStart(2, '0');
+      const ymd = `${targetDate.getFullYear()}-${p(targetDate.getMonth() + 1)}-${p(targetDate.getDate())}`;
+
       const r = await fetch(
-        `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lng}&units=metric&appid=${this.API_KEY}`
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
+        `&hourly=temperature_2m,weathercode&daily=temperature_2m_max,weathercode` +
+        `&timezone=auto&forecast_days=7`
       );
       if (!r.ok) throw new Error('Forecast API error: ' + r.status);
       const d = await r.json();
 
-      const target = new Date();
-      target.setDate(target.getDate() + daysAhead);
-      target.setHours(12, 0, 0, 0);
-
-      let best = null, minDiff = Infinity;
-      for (const item of d.list) {
-        const diff = Math.abs(new Date(item.dt * 1000) - target);
-        if (diff < minDiff) { minDiff = diff; best = item; }
+      let temp = null, code = null;
+      const hi = d.hourly?.time ? d.hourly.time.indexOf(`${ymd}T12:00`) : -1;
+      if (hi >= 0) {
+        temp = d.hourly.temperature_2m[hi];
+        code = d.hourly.weathercode[hi];
+      } else {
+        const di = d.daily?.time ? d.daily.time.indexOf(ymd) : -1;
+        if (di >= 0) {
+          temp = d.daily.temperature_2m_max[di];
+          code = d.daily.weathercode[di];
+        }
       }
-      if (!best) return;
+      if (temp == null) throw new Error('Forecast has no data for ' + ymd);
 
-      const iconKey = this.iconMap[best.weather[0].icon] || 'cloud';
-      this.render(iconKey, Math.round(best.main.temp), false);
+      this.render(this.wmoToIcon(code == null ? 0 : code), Math.round(temp), false);
     },
 
     async fetchHistorical(lat, lng, eventDate) {
@@ -439,12 +449,13 @@ if (window.DriveThisLoaded) {
       // Only hide weather once the event is completely over
       if (eventEnd < now) return;
 
-      // For ongoing events daysAhead is 0, which fetches today's live forecast
+      // For ongoing events daysAhead is 0, which fetches today's forecast
       const daysAhead = Math.max(0, Math.ceil((eventStart - now) / 864e5));
+      const target = daysAhead === 0 ? now : eventStart;
 
       try {
         if (daysAhead <= 5) {
-          await this.fetchForecast(lat, lng, daysAhead);
+          await this.fetchForecast(lat, lng, target);
         } else {
           await this.fetchHistorical(lat, lng, eventStart);
         }
