@@ -1,68 +1,58 @@
 /**
  * DRIVE THIS - Event Page Styles
- * Version: 1.0.2
+ * Version: 1.9.0 (2026-09-04)
+ * Save button: heart -> bookmark, icon-only square button.
  */
 
 /* ===========================================
-   FAVORITE BUTTON
+   SAVE BUTTON (bookmark)
    =========================================== */
 
 .dt-event-favorite {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 8px;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 10px;
   border: 0;
   background: #fff;
   color: #000;
-  font-family: Sonnygothic, Arial, sans-serif;
-  font-size: 0.8rem;
-  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .dt-event-favorite:hover {
-  background: #f9fafb;
-}
-
-.dt-event-favorite.is-favorited {
-  background: #fef2f2;
-  color: #FF9900;
-}
-
-.dt-event-favorite.is-favorited svg {
-  fill: currentColor;
+  background: #f0f0f0;
 }
 
 .dt-event-favorite svg {
-  width: 20px;
-  height: 20px;
-  transition: transform 0.2s ease;
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
-.dt-event-favorite.icon-only {
-  padding: 12px;
-  border-radius: 50%;
-}
-
-.dt-event-favorite .dt-favorite-text {
+.dt-event-favorite .dt-bm-filled {
   display: none;
 }
 
-.dt-event-favorite.icon-only .dt-favorite-text {
+.dt-event-favorite.is-favorited .dt-bm-outline {
   display: none;
 }
 
-@keyframes dtHeartPop {
+.dt-event-favorite.is-favorited .dt-bm-filled {
+  display: block;
+}
+
+@keyframes dtSavePop {
   0% { transform: scale(1); }
   50% { transform: scale(1.25); }
   100% { transform: scale(1); }
 }
 
 .dt-event-favorite.just-toggled svg {
-  animation: dtHeartPop 0.3s ease;
+  animation: dtSavePop 0.3s ease;
 }
 
 /* ===========================================
