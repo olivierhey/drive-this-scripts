@@ -2,13 +2,24 @@
  * Drive This – Dynamic Pin Coloring
  * Dark pin with colored country ring.
  *
- * Version: 2.1.0
+ * Version: 3.0.0 (2026-09-04)
+ *
+ * v3.0.0
+ *  - Saved pins keep the country ring. The bookmark marker on a saved pin
+ *    is a CSS pseudo-element (map-inline.css), so the old
+ *    :not(.is-favorite-pin) exclusion is gone.
+ *  - Past-event pins no longer use the "27" glyph. They get the same ring,
+ *    faded inside the SVG (PAST_OPACITY) instead of via element opacity,
+ *    so the bookmark on a saved past event stays fully opaque.
+ *  - Featured pin variants removed (the inline featured-pins script and
+ *    featured-cards.js are retired).
  */
 (function () {
   'use strict';
   const SLUG_CLASS_PREFIX = 'ncf-slug-';
   const DATA_SELECTOR = '[data-slug]';
   const FALLBACK_COLOR = '#D45D3F';
+  const PAST_OPACITY = 0.3;
   const COLOR_OVERRIDES = {
     'autopia-madrid': '#e96565',
     'klassikwelt-bodensee': '#FABD61',
@@ -35,8 +46,9 @@
     'targa-florio-classica': '#3adfba',
     'auto-e-moto-depoca': '#3adfba',
   };
-  function makePinDataUri(color) {
-    const svg = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" fill="#2a2a3a" stroke="${color}" stroke-width="3"/></svg>`;
+  function makePinDataUri(color, opacity) {
+    const op = opacity === undefined ? '' : ` opacity="${opacity}"`;
+    const svg = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="10" r="8" fill="#2a2a3a" stroke="${color}" stroke-width="3"${op}/></svg>`;
     return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   }
   function rgbToHex(rgb) {
@@ -63,22 +75,16 @@
   function injectStyles(colorMap) {
     const existing = document.getElementById('dt-pin-colors');
     if (existing) existing.remove();
-    const rules = Object.entries(colorMap).map(([slug, color]) => {
-      const uri = makePinDataUri(color);
-      return `.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"]:not(.is-favorite-pin) { background-image: ${uri} !important; }`;
-    });
-    // Past-event pins: Länderfarbe als "27"-SVG, Opacity kommt aus Page CSS
-    function makePastPinDataUri(color) {
-      const svg = `<svg width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#c2)"><path d="M14.5 8.5C14.5 5.18629 11.8137 2.5 8.5 2.5C5.18629 2.5 2.5 5.18629 2.5 8.5C2.5 11.8137 5.18629 14.5 8.5 14.5V17C3.80558 17 0 13.1944 0 8.5C0 3.80558 3.80558 0 8.5 0C13.1944 0 17 3.80558 17 8.5C17 13.1944 13.1944 17 8.5 17V14.5C11.8137 14.5 14.5 11.8137 14.5 8.5Z" fill="${color}"/><path d="M6.41504 5.3916C7.65506 5.3916 8.48219 6.0624 8.48242 7.06836C8.48242 7.65336 8.22494 8.07497 7.81934 8.54297L6.82129 9.68164H8.51367V11H4.27832V10.2822L6.40723 7.84082C6.60223 7.62242 6.69629 7.4118 6.69629 7.2168C6.69621 6.99081 6.54806 6.84292 6.27539 6.84277C6.01799 6.84277 5.85337 6.99067 5.75977 7.26367H4.2002C4.36401 6.06265 5.13609 5.39173 6.41504 5.3916ZM13.1562 6.39844L10.957 11H9.10059L11.0977 6.94434H8.83496V5.54004H13.1562V6.39844Z" fill="${color}"/></g><defs><clipPath id="c2"><rect width="17" height="17" fill="white"/></clipPath></defs></svg>`;
-      return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-    }
+    const rules = [];
+    // Fallback for past pins without colour data (lower specificity than the slug rules below)
+    rules.push(`.cru-ncf-pin[ncf-pinstyle="default"].is-past-event { background-image: ${makePinDataUri(FALLBACK_COLOR, PAST_OPACITY)} !important; }`);
     Object.entries(colorMap).forEach(([slug, color]) => {
-      rules.push(`.cru-ncf-pin.${SLUG_CLASS_PREFIX}${slug}.is-past-event:not(.is-favorite-pin) { background-image: ${makePastPinDataUri(color)} !important; width: 18px !important; height: 18px !important; background-size: contain !important; }`);
+      rules.push(`.cru-ncf-pin.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"] { background-image: ${makePinDataUri(color)} !important; }`);
+      rules.push(`.cru-ncf-pin.${SLUG_CLASS_PREFIX}${slug}[ncf-pinstyle="default"].is-past-event { background-image: ${makePinDataUri(color, PAST_OPACITY)} !important; }`);
     });
-    rules.push(`.cru-ncf-pin.is-past-event:not(.is-favorite-pin) { background-image: ${makePastPinDataUri(FALLBACK_COLOR)} !important; width: 18px !important; height: 18px !important; background-size: contain !important; }`);
-    // Favorite pins leicht erhöht, aber UNTER den Tooltips
+    // Saved pins slightly raised, but BELOW the tooltips
     rules.push(`.mapboxgl-marker:has(.is-favorite-pin) { z-index: 500 !important; }`);
-    // Tooltips über alles
+    // Tooltips above everything
     rules.push(`.ncf-tooltip-popup-inner-wrapper { position: relative; z-index: 9999 !important; }`);
     rules.push(`.mapboxgl-popup { z-index: 9999 !important; }`);
     const style = document.createElement('style');
