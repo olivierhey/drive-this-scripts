@@ -1,27 +1,25 @@
 /* Drive This – Car Event Map
-   Hides the title pill on mobile while the visitor interacts with the map or scrolls the event cards.
-   Pill returns after 2.5 s of inactivity. Desktop unaffected. */
+   Pill auto-hide v1.1 – hides the title pill on mobile during map/card interaction. */
 (function () {
   if (window.matchMedia('(min-width: 768px)').matches) return;
 
   function init() {
     var pill = document.querySelector('.map-title-pill');
-    var map = document.querySelector('#map') || document.querySelector('.ncf-map-wrapper');
-    var cards = document.querySelector('.cru-ncf-map-item-list');
-    if (!pill) return;
+    if (!pill) { console.warn('[DT] Pill auto-hide: .map-title-pill not found'); return; }
+    console.log('[DT] Pill auto-hide v1.1 active');
 
     var timer;
-    function hide() {
+    function hide(e) {
+      if (e && e.target && pill.contains(e.target)) return;
       pill.classList.add('is-hidden');
       clearTimeout(timer);
       timer = setTimeout(function () { pill.classList.remove('is-hidden'); }, 2500);
     }
 
-    [map, cards].forEach(function (el) {
-      if (!el) return;
-      el.addEventListener('touchstart', hide, { passive: true });
-      el.addEventListener('scroll', hide, { passive: true });
-    });
+    document.addEventListener('pointerdown', hide, { capture: true, passive: true });
+    document.addEventListener('touchstart', hide, { capture: true, passive: true });
+    document.addEventListener('scroll', hide, { capture: true, passive: true });
+    document.addEventListener('wheel', hide, { capture: true, passive: true });
   }
 
   if (document.readyState === 'loading') {
