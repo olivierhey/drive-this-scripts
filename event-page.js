@@ -1,7 +1,10 @@
 /**
  * DRIVE THIS - Event Page Scripts
- * Version: 1.4.0
- * Fix: Weather widget now shows for ongoing events (uses end date)
+ * Version: 1.5.0 (2026-09-04)
+ * Save button: heart -> bookmark. The button holds an outline and a filled
+ * SVG, event-page.css switches them via .is-favorited; the script only
+ * toggles the class and the labels. Storage key dt_favorites unchanged.
+ * 1.4.0: Weather widget now shows for ongoing events (uses end date)
  */
 
 // Global guard - prevent entire script from running twice
@@ -69,18 +72,8 @@ if (window.DriveThisLoaded) {
 
     updateButton(btn, isFav) {
       btn.classList.toggle('is-favorited', isFav);
-      
-      const path = btn.querySelector('svg path');
-      if (path) {
-        path.setAttribute('fill', isFav ? 'currentColor' : 'none');
-      }
-      
-      const text = btn.querySelector('.dt-favorite-text');
-      if (text) {
-        text.textContent = isFav ? 'Saved' : 'Save Event';
-      }
-      
-      btn.setAttribute('aria-label', isFav ? 'Remove from favorites' : 'Add to favorites');
+      btn.setAttribute('aria-label', isFav ? 'Remove from saved events' : 'Save event');
+      btn.setAttribute('title', isFav ? 'Saved event' : 'Save event');
     },
 
     init() {
@@ -100,10 +93,10 @@ if (window.DriveThisLoaded) {
         void btn.offsetWidth;
         btn.classList.add('just-toggled');
         
-        DT.log('Favorite toggled: ' + isNowFav);
+        DT.log('Saved event toggled: ' + isNowFav);
       });
 
-      DT.log('Favorites initialized');
+      DT.log('Save button initialized');
     }
   };
 
