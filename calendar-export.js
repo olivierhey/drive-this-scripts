@@ -219,8 +219,8 @@
 .dt-cal-btn svg{width:18px;height:18px;flex-shrink:0;display:block}
 .dt-cal-btn:focus-visible{outline:2px solid #FF9900;outline-offset:2px}
 .dt-cal-btn[disabled]{cursor:default;opacity:.55}
-.dt-cal-map{height:44px;padding:8px 16px;border:0;border-radius:4px;background:#fff;color:#000}
-.dt-cal-map:not([disabled]):hover{background:rgba(255,255,255,.1)}
+.dt-cal-map{height:44px;padding:8px 16px;border:0;border-radius:4px;background:#fff;color:#000;transition:0.2s}
+.dt-cal-map:not([disabled]):hover{transform:scale(1.03)}
 .dt-cal-map[hidden]{display:none!important}
 .dt-cal-page{height:48px;padding:0 18px;border:1.5px solid currentColor;border-radius:10px;background:transparent;color:inherit}
 .dt-cal-page:hover{background:rgba(127,127,127,.12)}
