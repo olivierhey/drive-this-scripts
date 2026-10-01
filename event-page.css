@@ -25,6 +25,7 @@
 
 .dt-event-favorite:hover {
   background: #f0f0f0;
+  transform: scale(1.06);
 }
 
 .dt-event-favorite svg {
