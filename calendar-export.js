@@ -217,7 +217,7 @@
     s.id = 'dt-cal-styles';
     s.textContent = `
 .dt-cal-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:inherit;font-size:14px;font-weight:500;line-height:1;white-space:nowrap;cursor:pointer;user-select:none;transition:background .2s ease,opacity .2s ease}
-.dt-cal-btn svg{width:18px;height:18px;flex-shrink:0;display:block}
+.dt-cal-btn svg{width:18px;height:18px;margin-top:-2px;flex-shrink:0;display:block}
 .dt-cal-btn:focus-visible{outline:2px solid #FF9900;outline-offset:2px}
 .dt-cal-btn[disabled]{cursor:default;opacity:.55}
 .dt-cal-map{height:44px;padding:8px 16px;border:1px solid rgba(255,255,255);border-radius:4px;background:rgba(255,255,255,.1);color:#fff}
