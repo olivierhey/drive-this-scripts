@@ -224,7 +224,7 @@
 .dt-cal-map:not([disabled]):hover{background:rgba(255,255,255,.2)}
 .dt-cal-map[hidden]{display:none!important}
 .dt-cal-short{display:none}
-@media (max-width:767px){.dt-cal-map{padding:8px 16px;gap:9px}.dt-cal-long{display:none}.dt-cal-short{display:inline}}
+@media (max-width:767px){.dt-cal-map{padding:8px 16px;gap:8px}.dt-cal-long{display:none}.dt-cal-short{display:inline}}
 .dt-cal-page{height:48px;padding:0 18px;border:1.5px solid currentColor;border-radius:10px;background:transparent;color:inherit}
 .dt-cal-page:hover{background:rgba(127,127,127,.12)}
 .dt-cal-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
