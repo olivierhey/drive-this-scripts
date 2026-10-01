@@ -220,8 +220,8 @@
 .dt-cal-btn svg{width:18px;height:18px;flex-shrink:0;display:block}
 .dt-cal-btn:focus-visible{outline:2px solid #FF9900;outline-offset:2px}
 .dt-cal-btn[disabled]{cursor:default;opacity:.55}
-.dt-cal-map{height:44px;padding:8px 16px;border:1px solid rgba(255,255,255,.35);border-radius:4px;background:transparent;color:#fff}
-.dt-cal-map:not([disabled]):hover{background:rgba(255,255,255,.1)}
+.dt-cal-map{height:44px;padding:8px 16px;border:1px solid rgba(255,255,255);border-radius:4px;background:rgba(255,255,255,.1);color:#fff}
+.dt-cal-map:not([disabled]):hover{background:rgba(255,255,255,.2)}
 .dt-cal-map[hidden]{display:none!important}
 .dt-cal-short{display:none}
 @media (max-width:767px){.dt-cal-map{padding:8px 16px;gap:9px}.dt-cal-long{display:none}.dt-cal-short{display:inline}}
