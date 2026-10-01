@@ -1,6 +1,7 @@
 /**
  * DRIVE THIS - Calendar Export
- * Version: 1.0.0 (2026-10-01)
+ * Version: 1.0.1 (2026-10-02)
+ * 1.0.1: Short label "Download" on mobile (< 768px), tighter padding.
  *
  * One-time .ics export, no sync.
  *  - Map page: "Download calendar" next to the Saved filter chip, visible
@@ -219,9 +220,11 @@
 .dt-cal-btn svg{width:18px;height:18px;flex-shrink:0;display:block}
 .dt-cal-btn:focus-visible{outline:2px solid #FF9900;outline-offset:2px}
 .dt-cal-btn[disabled]{cursor:default;opacity:.55}
-.dt-cal-map{height:44px;padding:8px 16px;border:0;border-radius:4px;background:#fff;color:#000;transition:0.2s}
-.dt-cal-map:not([disabled]):hover{transform:scale(1.03)}
+.dt-cal-map{height:44px;padding:8px 16px;border:1px solid rgba(255,255,255,.35);border-radius:4px;background:transparent;color:#fff}
+.dt-cal-map:not([disabled]):hover{background:rgba(255,255,255,.1)}
 .dt-cal-map[hidden]{display:none!important}
+.dt-cal-short{display:none}
+@media (max-width:767px){.dt-cal-map{padding:8px 12px;gap:6px}.dt-cal-long{display:none}.dt-cal-short{display:inline}}
 .dt-cal-page{height:48px;padding:0 18px;border:1.5px solid currentColor;border-radius:10px;background:transparent;color:inherit}
 .dt-cal-page:hover{background:rgba(127,127,127,.12)}
 .dt-cal-wrap{display:inline-flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -318,7 +321,8 @@
       btn.className = 'dt-cal-btn dt-cal-map';
       btn.title = 'One-time calendar export. Later event changes are not updated automatically.';
       btn.hidden = true;
-      btn.innerHTML = ICON + '<span class="dt-cal-label">Download calendar</span>';
+      btn.innerHTML = ICON + '<span class="dt-cal-label dt-cal-long">Download calendar</span><span class="dt-cal-label dt-cal-short">Download</span>';
+      btn.setAttribute('aria-label', 'Download calendar');
       chip.insertAdjacentElement('afterend', btn);
 
       // Capture phase, same as the Saved chip, so NCF filter handlers never see it.
@@ -328,7 +332,8 @@
       }, true);
       btn.addEventListener('mousedown', e => { e.stopPropagation(); }, true);
 
-      const label = btn.querySelector('.dt-cal-label');
+      const longLabel = btn.querySelector('.dt-cal-long');
+      const shortLabel = btn.querySelector('.dt-cal-short');
       const sync = () => {
         const active = chip.classList.contains('active');
         let ids = [];
@@ -338,7 +343,9 @@
         const r = evaluateSaved();
         const none = !r.error && r.ok.length === 0;
         btn.disabled = none;
-        label.textContent = none ? 'No upcoming saved events' : 'Download calendar';
+        longLabel.textContent = none ? 'No upcoming saved events' : 'Download calendar';
+        shortLabel.textContent = none ? 'No upcoming' : 'Download';
+        btn.setAttribute('aria-label', none ? 'No upcoming saved events' : 'Download calendar');
       };
 
       new MutationObserver(sync).observe(chip, { attributes: true, attributeFilter: ['class'] });
