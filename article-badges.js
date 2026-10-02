@@ -1,6 +1,6 @@
 (function(){'use strict';
 const styleEl=document.createElement('style');
-styleEl.textContent=`.dt-article-badge{position:absolute;left:0;padding:6px 20px 24px 20px;border-radius:8px;font-size:12px;font-weight:400;line-height:2;white-space:nowrap;z-index:9;text-decoration:none;pointer-events:auto;display:inline-block}.dt-article-badge:hover{opacity:.85}`;
+styleEl.textContent=`.dt-article-badge{position:absolute;left:0;padding:6px 20px 24px 20px;border-radius:8px;font-size:12px;font-weight:400;line-height:2;white-space:nowrap;z-index:9;text-decoration:none;pointer-events:auto;display:none}.dt-article-badge:hover{opacity:.85}`;
 document.head.appendChild(styleEl);
 
 const typeStyles={
