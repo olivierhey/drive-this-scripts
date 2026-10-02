@@ -1,12 +1,12 @@
 (function(){'use strict';
 const styleEl=document.createElement('style');
-styleEl.textContent=`.dt-article-badge{position:absolute;left:-1px;padding:5px 9px;border-radius:4px;font-size:12px;font-weight:400;line-height:1;white-space:nowrap;z-index:9;text-decoration:none;pointer-events:auto;display:inline-block}.dt-article-badge:hover{opacity:.85}`;
+styleEl.textContent=`.dt-article-badge{position:absolute;left:0;padding:6px 20px 24px 20px;border-radius:8px;font-size:12px;font-weight:400;line-height:2;white-space:nowrap;z-index:9;text-decoration:none;pointer-events:auto;display:inline-block}.dt-article-badge:hover{opacity:.85}`;
 document.head.appendChild(styleEl);
 
 const typeStyles={
-  'Field Report':   {bg:'#4fd8ff80', color:'#fff'},
-  'Roadtrip Guide': {bg:'#ff573380', color:'#fff'},
-  'Event Preview':  {bg:'#e8ff4780', color:'#fff'}
+  'Field Report':   {bg:'#fff', color:'#000'},
+  'Roadtrip Guide': {bg:'#fff', color:'#000'},
+  'Event Preview':  {bg:'#fff', color:'#000'}
 };
             
 function positionBadges(item){
