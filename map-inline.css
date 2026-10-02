@@ -16,7 +16,6 @@
 */
 
 .dt-drawer{transition:none!important}
-.dt-article-badge{color:#ffffff!important}
 .cru-ncf-tooltip{pointer-events:none!important}
 .ncf-tooltip-pop-up-wrapper{pointer-events:none!important}
 .dt-transitions-ready .dt-drawer{transition:transform 0.35s cubic-bezier(0.32,0.72,0,1)!important}
