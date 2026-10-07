@@ -1,4 +1,4 @@
-/* Drive This · map-card-filter.js v1.2.0
+/* Drive This · map-card-filter.js v1.3.0
    Filters the Car Event Map by Car Card: /car-event-map?card=DT-0009&name=Ferrari%20F40
    Reads data-dt-card-ids on .cru-ncf-map-list-item, hides non-matching list items and pins,
    shows a chip with a reset. No dependencies. */
@@ -11,9 +11,10 @@
 
   var cardName = (params.get('name') || '').trim();
   var ITEM = '.cru-ncf-map-list-item';
-  var PIN = '.cru-ncf-pin, .mapboxgl-marker';
+  var PIN = '.cru-ncf-pin';
   var HIDE = 'dt-card-hidden';
   var allowedNames = new Set();
+  var allowedSlugs = new Set();
   var matchCount = 0;
   var chip = null;
   var timer = null;
@@ -51,6 +52,22 @@
     return norm(el.dataset.name || (el.querySelector('h3') || {}).textContent || '');
   }
 
+  function slugify(n) {
+    return (n || '').toLowerCase().replace(/[\u00e4]/g, 'ae').replace(/[\u00f6]/g, 'oe').replace(/[\u00fc]/g, 'ue')
+      .replace(/\u00df/g, 'ss').replace(/[\u00e9\u00e8\u00ea\u00eb]/g, 'e').replace(/[\u00e0\u00e2]/g, 'a')
+      .replace(/[\u00f9\u00fb]/g, 'u').replace(/[\u00ee\u00ef\u00ec]/g, 'i').replace(/[\u00f4\u00f2]/g, 'o')
+      .replace(/\u00f1/g, 'n').replace(/\u00e7/g, 'c').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  function slugOf(item) {
+    return item.dataset.slug || slugify(item.dataset.name || (item.querySelector('h3') || {}).textContent || '');
+  }
+
+  function pinSlug(pin) {
+    var m = (pin.className || '').match(/ncf-slug-([^\s]+)/);
+    return m ? m[1] : '';
+  }
+
   function pinName(pin) {
     return norm(pin.dataset.name || pin.getAttribute('aria-label') || pin.getAttribute('title') || pin.textContent || '');
   }
@@ -67,6 +84,7 @@
   // --- filter -------------------------------------------------------------
   function apply() {
     allowedNames = new Set();
+    allowedSlugs = new Set();
     matchCount = 0;
 
     document.querySelectorAll(ITEM).forEach(function (item) {
@@ -76,19 +94,24 @@
         matchCount++;
         var n = nameOf(item);
         if (n) allowedNames.add(n);
+        var sl = slugOf(item);
+        if (sl) allowedSlugs.add(sl);
       }
     });
 
     var pins = document.querySelectorAll(PIN);
+    var markers = [];
     var keep = [];
     pins.forEach(function (pin) {
-      var n = pinName(pin);
-      keep.push(!n || nameMatches(n));      // unnamed pin: leave it alone
+      var sl = pinSlug(pin);
+      if (!sl) return;                      // pin without slug: leave it alone
+      markers.push(pin.closest('.mapboxgl-marker') || pin);
+      keep.push(allowedSlugs.has(sl) || nameMatches(pinName(pin)));
     });
     var anyVisible = keep.some(Boolean);
-    pins.forEach(function (pin, i) {
+    markers.forEach(function (marker, i) {
       // safety net: never hide every pin; if nothing matches, leave pins untouched
-      pin.classList.toggle(HIDE, anyVisible ? !keep[i] : false);
+      marker.classList.toggle(HIDE, anyVisible ? !keep[i] : false);
     });
 
     renderChip();
@@ -135,15 +158,16 @@
     if (params.get('dtdebug')) {
       setTimeout(function () {
         var pins = Array.prototype.slice.call(document.querySelectorAll(PIN));
-        var hidden = pins.filter(function (p) { return p.classList.contains(HIDE); }).length;
+        var hidden = pins.filter(function (p) { return (p.closest('.mapboxgl-marker') || p).classList.contains(HIDE); }).length;
         var items = document.querySelectorAll(ITEM).length;
         var lines = [
           '[DT card filter] card=' + cardId,
           'list items: ' + items + ', matching: ' + matchCount,
           'allowed names: ' + Array.from(allowedNames).join(' | '),
+          'allowed slugs: ' + Array.from(allowedSlugs).join(' | '),
           'pins total: ' + pins.length + ', hidden by filter: ' + hidden
-        ].concat(pins.slice(0, 6).map(function (p, i) {
-          return 'pin ' + i + ': <' + p.tagName.toLowerCase() + ' class="' + p.className + '"> name="' + pinName(p) + '" html=' + (p.outerHTML || '').slice(0, 160).replace(/\s+/g, ' ');
+        ].concat(pins.slice(0, 4).map(function (p, i) {
+          return 'pin ' + i + ': slug=' + pinSlug(p) + ' hidden=' + (p.closest('.mapboxgl-marker') || p).classList.contains(HIDE);
         }));
         console.log(lines.join('\n'));
       }, 3000);
