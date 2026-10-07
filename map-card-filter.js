@@ -29,8 +29,8 @@
     'letter-spacing:.06em;text-transform:uppercase;box-shadow:0 6px 20px rgba(0,0,0,.35)}' +
     '.dt-card-chip span{opacity:.7;font-weight:400}' +
     '.dt-card-chip button{all:unset;cursor:pointer;width:28px;height:28px;display:grid;place-items:center;' +
-    'border-radius:50%;background:rgba(0,0,0,.12);font-size:14px;line-height:1}' +
-    '.dt-card-chip button:hover{background:rgba(0,0,0,.25)}' +
+    'border-radius:50%;background:rgba(0,0,0,.1);font-size:18px;line-height:1}' +
+    '.dt-card-chip button:hover{background:rgba(0,0,0,.2)}' +
     '@media(max-width:767px){.dt-card-chip{top:auto;bottom:16px;max-width:calc(100% - 32px);white-space:nowrap;overflow:hidden}}';
   document.head.appendChild(style);
 
