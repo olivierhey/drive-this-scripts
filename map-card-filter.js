@@ -1,4 +1,4 @@
-/* Drive This · map-card-filter.js v1.0.0
+/* Drive This · map-card-filter.js v1.1.0
    Filters the Car Event Map by Car Card: /car-event-map?card=DT-0009&name=Ferrari%20F40
    Reads data-dt-card-ids on .cru-ncf-map-list-item, hides non-matching list items and pins,
    shows a chip with a reset. No dependencies. */
@@ -43,12 +43,25 @@
     return (raw || '').toUpperCase().split(/[,\s]+/).filter(Boolean);
   }
 
+  function norm(s) {
+    return (s || '').toLowerCase().replace(/[\u2018\u2019\u02bc]/g, "'").replace(/\s+/g, ' ').trim();
+  }
+
   function nameOf(el) {
-    return (el.dataset.name || (el.querySelector('h3') || {}).textContent || '').trim().toLowerCase();
+    return norm(el.dataset.name || (el.querySelector('h3') || {}).textContent || '');
   }
 
   function pinName(pin) {
-    return (pin.dataset.name || pin.getAttribute('aria-label') || pin.textContent || '').trim().toLowerCase();
+    return norm(pin.dataset.name || pin.getAttribute('aria-label') || pin.getAttribute('title') || pin.textContent || '');
+  }
+
+  function nameMatches(n) {
+    if (allowedNames.has(n)) return true;
+    var hit = false;
+    allowedNames.forEach(function (a) {
+      if (!hit && a.length > 3 && n.length > 3 && (n.indexOf(a) !== -1 || a.indexOf(n) !== -1)) hit = true;
+    });
+    return hit;
   }
 
   // --- filter -------------------------------------------------------------
@@ -66,11 +79,21 @@
       }
     });
 
-    document.querySelectorAll(PIN).forEach(function (pin) {
+    var pins = document.querySelectorAll(PIN);
+    var keep = [];
+    pins.forEach(function (pin) {
       var n = pinName(pin);
-      if (!n) return;                       // unknown pin: leave it alone
-      pin.classList.toggle(HIDE, !allowedNames.has(n));
+      keep.push(!n || nameMatches(n));      // unnamed pin: leave it alone
     });
+    var anyVisible = keep.some(Boolean);
+    pins.forEach(function (pin, i) {
+      // safety net: never hide every pin; if nothing matches, leave pins untouched
+      pin.classList.toggle(HIDE, anyVisible ? !keep[i] : false);
+    });
+    if (params.get('dtdebug') && pins.length) {
+      console.log('[DT card filter] allowed:', Array.from(allowedNames), 'pins:',
+        Array.prototype.slice.call(pins, 0, 5).map(function (p) { return [p.className, pinName(p)]; }));
+    }
 
     renderChip();
   }
