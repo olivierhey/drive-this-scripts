@@ -24,7 +24,7 @@
   style.textContent =
     '.' + HIDE + '{display:none!important}' +
     '.dt-card-chip{position:fixed;left:50%;top:80px;transform:translateX(-50%);z-index:9000;' +
-    'display:flex;align-items:center;gap:10px;padding:8px 10px 8px 20px;background:#141414;color:#fff;' +
+    'display:flex;align-items:center;gap:10px;padding:8px 10px 8px 20px;background:#fff;color:#000;' +
     'border:1px solid rgba(255,255,255,.25);border-radius:999px;font:600 12px/1 system-ui,-apple-system,sans-serif;' +
     'letter-spacing:.06em;text-transform:uppercase;box-shadow:0 6px 20px rgba(0,0,0,.35)}' +
     '.dt-card-chip span{opacity:.7;font-weight:400}' +
