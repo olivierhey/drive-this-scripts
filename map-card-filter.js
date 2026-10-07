@@ -1,4 +1,4 @@
-/* Drive This · map-card-filter.js v1.1.0
+/* Drive This · map-card-filter.js v1.2.0
    Filters the Car Event Map by Car Card: /car-event-map?card=DT-0009&name=Ferrari%20F40
    Reads data-dt-card-ids on .cru-ncf-map-list-item, hides non-matching list items and pins,
    shows a chip with a reset. No dependencies. */
@@ -90,17 +90,13 @@
       // safety net: never hide every pin; if nothing matches, leave pins untouched
       pin.classList.toggle(HIDE, anyVisible ? !keep[i] : false);
     });
-    if (params.get('dtdebug') && pins.length) {
-      console.log('[DT card filter] allowed:', Array.from(allowedNames), 'pins:',
-        Array.prototype.slice.call(pins, 0, 5).map(function (p) { return [p.className, pinName(p)]; }));
-    }
 
     renderChip();
   }
 
   function schedule() {
     clearTimeout(timer);
-    timer = setTimeout(apply, 120);
+    timer = setTimeout(apply, 300);
   }
 
   // --- chip ---------------------------------------------------------------
@@ -135,6 +131,23 @@
       apply();
       if (++tries >= 20) clearInterval(iv);
     }, 250);
+
+    if (params.get('dtdebug')) {
+      setTimeout(function () {
+        var pins = Array.prototype.slice.call(document.querySelectorAll(PIN));
+        var hidden = pins.filter(function (p) { return p.classList.contains(HIDE); }).length;
+        var items = document.querySelectorAll(ITEM).length;
+        var lines = [
+          '[DT card filter] card=' + cardId,
+          'list items: ' + items + ', matching: ' + matchCount,
+          'allowed names: ' + Array.from(allowedNames).join(' | '),
+          'pins total: ' + pins.length + ', hidden by filter: ' + hidden
+        ].concat(pins.slice(0, 6).map(function (p, i) {
+          return 'pin ' + i + ': <' + p.tagName.toLowerCase() + ' class="' + p.className + '"> name="' + pinName(p) + '" html=' + (p.outerHTML || '').slice(0, 160).replace(/\s+/g, ' ');
+        }));
+        console.log(lines.join('\n'));
+      }, 3000);
+    }
 
     if (typeof window.plausible === 'function') {
       window.plausible('Card Map Filter', { props: { card: cardId, name: cardName || '' } });
