@@ -1,4 +1,4 @@
-/* Drive This · map-card-filter.js v1.3.0
+/* Drive This · map-card-filter.js v1.4.0
    Filters the Car Event Map by Car Card: /car-event-map?card=DT-0009&name=Ferrari%20F40
    Reads data-dt-card-ids on .cru-ncf-map-list-item, hides non-matching list items and pins,
    shows a chip with a reset. No dependencies. */
@@ -17,20 +17,19 @@
   var allowedSlugs = new Set();
   var matchCount = 0;
   var chip = null;
-  var timer = null;
 
   // --- styles -------------------------------------------------------------
   var style = document.createElement('style');
   style.textContent =
     '.' + HIDE + '{display:none!important}' +
-    '.dt-card-chip{position:fixed;left:50%;top:80px;transform:translateX(-50%);z-index:9000;' +
-    'display:flex;align-items:center;gap:10px;padding:8px 10px 8px 20px;background:#fff;color:#000;' +
+    '.dt-card-chip{position:fixed;left:50%;top:72px;transform:translateX(-50%);z-index:9000;' +
+    'display:flex;align-items:center;gap:10px;padding:8px 10px 8px 14px;background:#141414;color:#fff;' +
     'border:1px solid rgba(255,255,255,.25);border-radius:999px;font:600 12px/1 system-ui,-apple-system,sans-serif;' +
     'letter-spacing:.06em;text-transform:uppercase;box-shadow:0 6px 20px rgba(0,0,0,.35)}' +
     '.dt-card-chip span{opacity:.7;font-weight:400}' +
     '.dt-card-chip button{all:unset;cursor:pointer;width:28px;height:28px;display:grid;place-items:center;' +
-    'border-radius:50%;background:rgba(0,0,0,.1);font-size:18px;line-height:1}' +
-    '.dt-card-chip button:hover{background:rgba(0,0,0,.2)}' +
+    'border-radius:50%;background:rgba(255,255,255,.12);font-size:14px;line-height:1}' +
+    '.dt-card-chip button:hover{background:rgba(255,255,255,.25)}' +
     '@media(max-width:767px){.dt-card-chip{top:auto;bottom:16px;max-width:calc(100% - 32px);white-space:nowrap;overflow:hidden}}';
   document.head.appendChild(style);
 
@@ -117,9 +116,12 @@
     renderChip();
   }
 
+  var rafPending = false;
   function schedule() {
-    clearTimeout(timer);
-    timer = setTimeout(apply, 300);
+    // re-apply before the next paint, so a re-rendered list never shows unfiltered
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(function () { rafPending = false; apply(); });
   }
 
   // --- chip ---------------------------------------------------------------
