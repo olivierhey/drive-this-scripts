@@ -1,17 +1,27 @@
-/* Drive This · map-card-filter.js v1.5.1
+/* Drive This · map-card-filter.js v1.6.0
    Filters the Car Event Map by Car Card: /car-event-map?card=DT-0009&name=Ferrari%20F40
    Reads data-dt-card-ids on .cru-ncf-map-list-item, hides non-matching list items and pins,
    shows a chip with a reset. No dependencies.
    v1.5.0: load this file on event pages too. There it remembers the exact image URL of every
    card linking to the map (localStorage), so the chip on the map shows the same, already cached
    image as a tilted mini card. No image remembered (e.g. a shared link): chip without card.
-   v1.5.1: close icon as SVG so the x sits exactly centred in its circle. */
+   v1.5.1: close icon as SVG so the x sits exactly centred in its circle.
+   v1.6.0: cards on event pages open the card in /cards (?card=DT-…) instead of the map filter;
+   the card's "On the map" button leads on to the filter. The image is still remembered first.
+   The chip's mini card and name link back to the card. Coming from /cards with &art=<folder>,
+   the chip builds the mini card from the Cards image store when nothing is remembered. */
 (function () {
   'use strict';
 
   var THUMBS_KEY = 'dt_card_thumbs';
   var THUMBS_MAX = 60;
-  var THUMB_HOST = /(^|\.)(website-files\.com|webflow\.com)$/;
+  var THUMB_HOST = /(^|\.)(website-files\.com|webflow\.com)$|^pub-6b1b7a25ccd0457d8a61cfbd67cab772\.r2\.dev$/;
+  var CARDS_ASSETS = 'https://pub-6b1b7a25ccd0457d8a61cfbd67cab772.r2.dev/cards/';
+
+  // The card itself, in the Cards app.
+  function cardUrl(id) {
+    return '/cards?card=' + encodeURIComponent(id);
+  }
 
   function readThumbs() {
     try { return JSON.parse(localStorage.getItem(THUMBS_KEY)) || {}; } catch (e) { return {}; }
@@ -43,8 +53,11 @@
     links.forEach(function (a) {
       var id;
       try { id = (new URL(a.href).searchParams.get('card') || '').trim().toUpperCase(); } catch (e) { return; }
+      if (!id) return;
+      // The card opens in /cards; its "On the map" button leads on to the filter.
+      a.href = cardUrl(id);
       var img = a.querySelector('img');
-      if (!id || !img) return;
+      if (!img) return;
       if (img.complete && img.naturalWidth) store(id, img);
       else img.addEventListener('load', function () { store(id, img); }, { once: true });
       a.addEventListener('pointerdown', function () { if (img.naturalWidth) store(id, img); });
@@ -59,6 +72,10 @@
     return;
   }
   var cardThumb = safeThumb(readThumbs()[cardId] || '');
+  var artFolder = (params.get('art') || '').trim().toLowerCase();
+  if (!cardThumb && /^[a-z0-9-]{1,80}$/.test(artFolder)) {
+    cardThumb = CARDS_ASSETS + artFolder + '/card-thumb.webp';
+  }
 
   var cardName = (params.get('name') || '').trim();
   var ITEM = '.cru-ncf-map-list-item';
@@ -78,6 +95,9 @@
     'border:1px solid rgba(255,255,255,.25);border-radius:999px;font:600 12px/1 system-ui,-apple-system,sans-serif;' +
     'letter-spacing:.06em;text-transform:uppercase;box-shadow:0 6px 20px rgba(0,0,0,.35)}' +
     '.dt-card-chip strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '.dt-card-chip a{color:inherit;text-decoration:none}' +
+    '.dt-card-chip a.dt-card-chip__name{min-width:0;display:flex}' +
+    '.dt-card-chip a.dt-card-chip__name:hover strong{text-decoration:underline;text-underline-offset:3px}' +
     '.dt-card-chip .dt-card-chip__count{opacity:.7;font-weight:400;white-space:nowrap}' +
     '.dt-card-chip .dt-card-chip__id{font:500 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;' +
     'text-transform:none;opacity:.7;padding:4px 7px;border:1px solid rgba(0,0,0,.18);border-radius:6px;white-space:nowrap}' +
@@ -195,13 +215,16 @@
       chip = document.createElement('div');
       chip.className = 'dt-card-chip';
       chip.setAttribute('role', 'status');
-      chip.innerHTML = '<strong></strong><span class="dt-card-chip__count"></span>' +
+      chip.innerHTML = '<a class="dt-card-chip__name"><strong></strong></a><span class="dt-card-chip__count"></span>' +
         '<span class="dt-card-chip__id"></span><button type="button" aria-label="Show all events"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">' +
         '<path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
       chip.querySelector('.dt-card-chip__id').textContent = cardId;
+      chip.querySelector('.dt-card-chip__name').href = cardUrl(cardId);
       if (cardThumb) {
-        var card = document.createElement('span');
+        var card = document.createElement('a');
         card.className = 'dt-card-chip__card';
+        card.href = cardUrl(cardId);
+        card.setAttribute('aria-label', 'Open the card');
         var img = document.createElement('img');
         img.alt = '';
         img.decoding = 'async';
