@@ -73,13 +73,13 @@
   var style = document.createElement('style');
   style.textContent =
     '.' + HIDE + '{display:none!important}' +
-    '.dt-card-chip{position:fixed;left:50%;top:80px;transform:translateX(-50%);z-index:9000;' +
+    '.dt-card-chip{position:fixed;left:50%;top:100px;transform:translateX(-50%);z-index:9000;' +
     'display:flex;align-items:center;gap:10px;padding:8px 10px 8px 20px;background:#fff;color:#000;' +
     'border:1px solid rgba(255,255,255,.25);border-radius:999px;font:600 12px/1 system-ui,-apple-system,sans-serif;' +
     'letter-spacing:.06em;text-transform:uppercase;box-shadow:0 6px 20px rgba(0,0,0,.35)}' +
     '.dt-card-chip strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
     '.dt-card-chip .dt-card-chip__count{opacity:.7;font-weight:400;white-space:nowrap}' +
-    '.dt-card-chip .dt-card-chip__id{font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;' +
+    '.dt-card-chip .dt-card-chip__id{font:500 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;' +
     'text-transform:none;opacity:.7;padding:4px 7px;border:1px solid rgba(0,0,0,.18);border-radius:6px;white-space:nowrap}' +
     '.dt-card-chip button{all:unset;cursor:pointer;width:28px;height:28px;flex:none;display:grid;place-items:center;' +
     'border-radius:50%;background:rgba(0,0,0,.12);font-size:16px;line-height:1}' +
@@ -88,7 +88,7 @@
     /* mini card, sticking out of the chip */
     '.dt-card-chip--thumb{padding-left:66px}' +
     '.dt-card-chip__card{position:absolute;left:12px;top:-13px;width:40px;height:50px;border-radius:4px;overflow:hidden;' +
-    'background:#f4e4cf;transform:rotate(-6deg);box-shadow:0 4px 10px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.08);' +
+    'background:#f4e4cf;transform:rotate(-6deg);box-shadow:1px 3px 6px rgba(0,0,0,.3),0 0 0 1px rgba(0,0,0,.08);' +
     'transition:transform .22s cubic-bezier(.3,1.4,.5,1),box-shadow .22s;animation:dtCardDrop .5s cubic-bezier(.3,1.4,.5,1) both}' +
     '.dt-card-chip__card img{display:block;width:100%;height:100%;object-fit:cover}' +
     '.dt-card-chip:hover .dt-card-chip__card{transform:rotate(0deg) scale(1.18) translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.45)}' +
