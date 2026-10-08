@@ -1,13 +1,64 @@
-/* Drive This · map-card-filter.js v1.4.0
+/* Drive This · map-card-filter.js v1.5.1
    Filters the Car Event Map by Car Card: /car-event-map?card=DT-0009&name=Ferrari%20F40
    Reads data-dt-card-ids on .cru-ncf-map-list-item, hides non-matching list items and pins,
-   shows a chip with a reset. No dependencies. */
+   shows a chip with a reset. No dependencies.
+   v1.5.0: load this file on event pages too. There it remembers the exact image URL of every
+   card linking to the map (localStorage), so the chip on the map shows the same, already cached
+   image as a tilted mini card. No image remembered (e.g. a shared link): chip without card.
+   v1.5.1: close icon as SVG so the x sits exactly centred in its circle. */
 (function () {
   'use strict';
 
+  var THUMBS_KEY = 'dt_card_thumbs';
+  var THUMBS_MAX = 60;
+  var THUMB_HOST = /(^|\.)(website-files\.com|webflow\.com)$/;
+
+  function readThumbs() {
+    try { return JSON.parse(localStorage.getItem(THUMBS_KEY)) || {}; } catch (e) { return {}; }
+  }
+
+  function safeThumb(url) {
+    try {
+      var u = new URL(url, window.location.href);
+      return u.protocol === 'https:' && THUMB_HOST.test(u.hostname) ? u.href : '';
+    } catch (e) { return ''; }
+  }
+
+  // --- event pages: remember card images ------------------------------------
+  function rememberThumbs() {
+    var links = document.querySelectorAll('a[href*="car-event-map"][href*="card="]');
+    if (!links.length) return;
+
+    function store(id, img) {
+      var src = safeThumb(img.currentSrc || img.src);
+      if (!src) return;
+      var all = readThumbs();
+      delete all[id];
+      all[id] = src;                         // newest last
+      var keys = Object.keys(all);
+      while (keys.length > THUMBS_MAX) delete all[keys.shift()];
+      try { localStorage.setItem(THUMBS_KEY, JSON.stringify(all)); } catch (e) {}
+    }
+
+    links.forEach(function (a) {
+      var id;
+      try { id = (new URL(a.href).searchParams.get('card') || '').trim().toUpperCase(); } catch (e) { return; }
+      var img = a.querySelector('img');
+      if (!id || !img) return;
+      if (img.complete && img.naturalWidth) store(id, img);
+      else img.addEventListener('load', function () { store(id, img); }, { once: true });
+      a.addEventListener('pointerdown', function () { if (img.naturalWidth) store(id, img); });
+    });
+  }
+
   var params = new URLSearchParams(window.location.search);
   var cardId = (params.get('card') || '').trim().toUpperCase();
-  if (!cardId) return;
+  if (!cardId) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', rememberThumbs);
+    else rememberThumbs();
+    return;
+  }
+  var cardThumb = safeThumb(readThumbs()[cardId] || '');
 
   var cardName = (params.get('name') || '').trim();
   var ITEM = '.cru-ncf-map-list-item';
@@ -26,11 +77,25 @@
     'display:flex;align-items:center;gap:10px;padding:8px 10px 8px 20px;background:#fff;color:#000;' +
     'border:1px solid rgba(255,255,255,.25);border-radius:999px;font:600 12px/1 system-ui,-apple-system,sans-serif;' +
     'letter-spacing:.06em;text-transform:uppercase;box-shadow:0 6px 20px rgba(0,0,0,.35)}' +
-    '.dt-card-chip span{opacity:.7;font-weight:400}' +
-    '.dt-card-chip button{all:unset;cursor:pointer;width:28px;height:28px;display:grid;place-items:center;' +
+    '.dt-card-chip strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '.dt-card-chip .dt-card-chip__count{opacity:.7;font-weight:400;white-space:nowrap}' +
+    '.dt-card-chip .dt-card-chip__id{font:500 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:0;' +
+    'text-transform:none;opacity:.7;padding:4px 7px;border:1px solid rgba(0,0,0,.18);border-radius:6px;white-space:nowrap}' +
+    '.dt-card-chip button{all:unset;cursor:pointer;width:28px;height:28px;flex:none;display:grid;place-items:center;' +
     'border-radius:50%;background:rgba(0,0,0,.12);font-size:16px;line-height:1}' +
+    '.dt-card-chip button svg{display:block}' +
     '.dt-card-chip button:hover{background:rgba(0,0,0,.25)}' +
-    '@media(max-width:767px){.dt-card-chip{top:auto;bottom:16px;max-width:calc(100% - 32px);white-space:nowrap;overflow:hidden}}';
+    /* mini card, sticking out of the chip */
+    '.dt-card-chip--thumb{padding-left:66px}' +
+    '.dt-card-chip__card{position:absolute;left:12px;top:-13px;width:40px;height:50px;border-radius:4px;overflow:hidden;' +
+    'background:#f4e4cf;transform:rotate(-6deg);box-shadow:0 4px 10px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.08);' +
+    'transition:transform .22s cubic-bezier(.3,1.4,.5,1),box-shadow .22s;animation:dtCardDrop .5s cubic-bezier(.3,1.4,.5,1) both}' +
+    '.dt-card-chip__card img{display:block;width:100%;height:100%;object-fit:cover}' +
+    '.dt-card-chip:hover .dt-card-chip__card{transform:rotate(0deg) scale(1.18) translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.45)}' +
+    '@keyframes dtCardDrop{from{opacity:0;transform:translateY(-28px) rotate(-18deg)}to{opacity:1;transform:rotate(-6deg)}}' +
+    '@media(prefers-reduced-motion:reduce){.dt-card-chip__card{animation:none;transition:none}}' +
+    '@media(max-width:767px){.dt-card-chip{top:auto;bottom:16px;max-width:calc(100% - 32px);white-space:nowrap}' +
+    '.dt-card-chip .dt-card-chip__id{display:none}}';
   document.head.appendChild(style);
 
   // --- helpers ------------------------------------------------------------
@@ -130,14 +195,32 @@
       chip = document.createElement('div');
       chip.className = 'dt-card-chip';
       chip.setAttribute('role', 'status');
-      chip.innerHTML = '<strong></strong><span></span><button type="button" aria-label="Show all events">✕</button>';
+      chip.innerHTML = '<strong></strong><span class="dt-card-chip__count"></span>' +
+        '<span class="dt-card-chip__id"></span><button type="button" aria-label="Show all events"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">' +
+        '<path d="M1 1L9 9M9 1L1 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
+      chip.querySelector('.dt-card-chip__id').textContent = cardId;
+      if (cardThumb) {
+        var card = document.createElement('span');
+        card.className = 'dt-card-chip__card';
+        var img = document.createElement('img');
+        img.alt = '';
+        img.decoding = 'async';
+        img.addEventListener('error', function () {      // image gone: fall back to the plain chip
+          card.remove();
+          chip.classList.remove('dt-card-chip--thumb');
+        });
+        img.src = cardThumb;                             // same URL as on the event page: served from cache
+        card.appendChild(img);
+        chip.insertBefore(card, chip.firstChild);
+        chip.classList.add('dt-card-chip--thumb');
+      }
       chip.querySelector('button').addEventListener('click', function () {
         window.location.href = window.location.pathname;
       });
       document.body.appendChild(chip);
     }
     chip.querySelector('strong').textContent = cardName || cardId;
-    chip.querySelector('span').textContent = matchCount === 1 ? '1 event' : matchCount + ' events';
+    chip.querySelector('.dt-card-chip__count').textContent = matchCount === 1 ? '1 event' : matchCount + ' events';
   }
 
   // --- boot: NCF loads items late, so watch for them -----------------------
