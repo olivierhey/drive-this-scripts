@@ -64,6 +64,7 @@
 @media(hover:hover){.cru-ncf-pin:hover{transform:scale(1.2)!important;cursor:pointer}
 }
 .mapboxgl-marker [class*="tooltip"],.mapboxgl-marker [class*="ncf-tip"],.mapboxgl-marker [class*="popup"],.mapboxgl-marker [class*="label"]{pointer-events:none!important}
+.mapboxgl-popup,.mapboxgl-popup *{pointer-events:none!important}
 
 /* ── Saved Pin: Laenderring bleibt, Bookmark (8x8 bei 18px) oben rechts ── */
 .cru-ncf-pin.is-favorite-pin,.cru-ncf-pin.animate-unfavorite{position:relative}
