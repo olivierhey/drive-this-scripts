@@ -45,6 +45,7 @@
     'gran-premio-nuvolari': '#3adfba',
     'targa-florio-classica': '#3adfba',
     'auto-e-moto-depoca': '#3adfba',
+    'planai-classic': '#e294ff',
   };
   function makePinDataUri(color, opacity) {
     const op = opacity === undefined ? '' : ` opacity="${opacity}"`;
